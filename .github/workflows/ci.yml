@@ -8,7 +8,6 @@ on:
 
 env:
   DENO_VERSION: v2.x
-  NODE_VERSION: 20.x
 
 jobs:
   lint-and-format:
