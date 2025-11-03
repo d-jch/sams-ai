@@ -41,14 +41,11 @@ try {
     await client.queryObject(sql);
     console.log("✅ Migration applied successfully.");
   } finally {
-    // Try to release the client if available
+    // Release the client back to the pool
     try {
-      // @ts-ignore - release may be named release or done depending on client
-      await (client.release
-        ? client.release()
-        : (client.done ? client.done() : Promise.resolve()));
+      client.release();
     } catch (_e) {
-      // ignore
+      // ignore release errors
     }
     await pool.end();
   }
