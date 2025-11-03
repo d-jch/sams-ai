@@ -361,7 +361,7 @@ jobs:
           echo "🔧 Entry Point: main.ts"
           echo ""
           echo "To enable automatic deployment:"
-          echo "1. Create a Deno Deploy project"  
+          echo "1. Create a Deno Deploy project"
           echo "2. Add DENO_DEPLOY_TOKEN to repository secrets"
           echo "3. Uncomment deployment steps in workflow"
           echo ""
