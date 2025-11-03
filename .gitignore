@@ -1,0 +1,57 @@
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# Fresh build directory
+_fresh/
+
+# npm + other dependencies
+node_modules/
+vendor/
+
+# Deno
+.deno/
+deno.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Database
+*.db
+*.sqlite
+
+# Coverage
+coverage/
+coverage_data/
+*.lcov
+
+# Temporary files
+tmp/
+temp/
+
+# Build artifacts
+dist/
+build/
+
+# Deployment
+.vercel
+.netlify
+
+# Local development
+.dev/
+
