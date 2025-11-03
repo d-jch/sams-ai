@@ -145,28 +145,21 @@ jobs:
         with:
           deno-version: ${{ env.DENO_VERSION }}
 
-      - name: 🟢 Setup Node.js (for Vite)
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: 📦 Cache dependencies
+      - name: Cache dependencies
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cache/deno
-            ~/.npm
+          path: ~/.cache/deno
           key: ${{ runner.os }}-build-${{ hashFiles('deno.lock', 'deno.json') }}
           restore-keys: |
             ${{ runner.os }}-build-
 
       - name: 🔧 Install dependencies
-        run: |
-          deno install
-          npm install
+        run: deno install
 
       - name: 🏗️ Build project
-        run: deno task build
+        run: |
+          echo "🏗️ Building Fresh 2 application..."
+          deno task build
 
       - name: 📦 Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -185,6 +178,8 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### Largest files:" >> $GITHUB_STEP_SUMMARY
             find _fresh -type f -exec ls -lah {} + | sort -k5 -hr | head -10 | awk '{print "- " $9 ": " $5}' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Build directory not found. This may be expected for Fresh 2 development builds." >> $GITHUB_STEP_SUMMARY
           fi
 
   security:
@@ -275,7 +270,7 @@ jobs:
           PORT: 8000
         run: |
           echo "🚀 Starting Fresh 2 application..."
-          deno task start &
+          deno serve -A --port 8000 _fresh/server.js &
           APP_PID=$!
           echo "APP_PID=$APP_PID" >> $GITHUB_ENV
 
