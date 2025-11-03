@@ -33,7 +33,7 @@ jobs:
             ${{ runner.os }}-deno-
 
       - name: 🔧 Install dependencies
-        run: deno install --entrypoint main.ts
+        run: deno install
 
       - name: ✨ Check formatting
         run: deno fmt --check
@@ -86,7 +86,7 @@ jobs:
             ${{ runner.os }}-deno-
 
       - name: 🔧 Install dependencies
-        run: deno install --entrypoint main.ts
+        run: deno install
 
       - name: 🧪 Run tests (${{ matrix.test-type }})
         env:
@@ -162,7 +162,7 @@ jobs:
 
       - name: 🔧 Install dependencies
         run: |
-          deno install --entrypoint main.ts
+          deno install
           npm install
 
       - name: 🏗️ Build project
@@ -202,7 +202,7 @@ jobs:
           deno-version: ${{ env.DENO_VERSION }}
 
       - name: 🔧 Install dependencies
-        run: deno install --entrypoint main.ts
+        run: deno install
 
       - name: 🔍 Security audit
         run: |
