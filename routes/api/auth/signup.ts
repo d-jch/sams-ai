@@ -1,9 +1,6 @@
 import { define } from "@/utils.ts";
 import { getAuth } from "@/lib/auth.ts";
-import {
-  sanitizeInput,
-  validateRegistration,
-} from "@/lib/validation.ts";
+import { sanitizeInput, validateRegistration } from "@/lib/validation.ts";
 import { setSessionCookies } from "@/routes/_middleware.ts";
 import type { AuthResponse } from "@/lib/types.ts";
 

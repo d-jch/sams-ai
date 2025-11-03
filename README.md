@@ -6,7 +6,10 @@
 [![Deno Version](https://img.shields.io/badge/deno-v2.x-black.svg)](https://deno.land/)
 [![Fresh Version](https://img.shields.io/badge/fresh-v2.1.4-brightgreen.svg)](https://fresh.deno.dev/)
 
-A secure, production-ready authentication system built with **Fresh 2**, **Deno**, **PostgreSQL**, and **Argon2**. This implementation follows Lucia Auth's design philosophy of simplicity, security, and developer experience, with comprehensive CI/CD pipeline and testing suite.
+A secure, production-ready authentication system built with **Fresh 2**,
+**Deno**, **PostgreSQL**, and **Argon2**. This implementation follows Lucia
+Auth's design philosophy of simplicity, security, and developer experience, with
+comprehensive CI/CD pipeline and testing suite.
 
 ## 🚀 Features
 
@@ -32,7 +35,8 @@ A secure, production-ready authentication system built with **Fresh 2**, **Deno*
 - **Database**: PostgreSQL 15+ with connection pooling
 - **Database Client**: `jsr:@db/postgres`
 - **Password Hashing**: `jsr:@felix/argon2` (Argon2id implementation)
-- **Session Management**: Lucia-style dual-token sessions with constant-time verification
+- **Session Management**: Lucia-style dual-token sessions with constant-time
+  verification
 - **Token Handling**: `jsr:@panva/jose` for JWT operations
 - **Cryptography**: Web Crypto API for secure random generation and hashing
 
@@ -152,14 +156,19 @@ Visit `http://localhost:8000` to see the application.
 
 ### Lucia-Style Dual-Token Session Security
 
-- **Dual-Token Architecture**: Sessions use ID + Secret pattern (`<SESSION_ID>.<SESSION_SECRET>`)
-- **Constant-Time Verification**: Prevents timing attacks through consistent execution time
-- **SHA-256 Secret Hashing**: Session secrets are hashed for secure storage and verification
-- **Cryptographically Secure Random**: Uses Web Crypto API for all random generation
+- **Dual-Token Architecture**: Sessions use ID + Secret pattern
+  (`<SESSION_ID>.<SESSION_SECRET>`)
+- **Constant-Time Verification**: Prevents timing attacks through consistent
+  execution time
+- **SHA-256 Secret Hashing**: Session secrets are hashed for secure storage and
+  verification
+- **Cryptographically Secure Random**: Uses Web Crypto API for all random
+  generation
 
 ### Password Security
 
-- **Argon2id** hashing with configurable parameters (default: 64MB memory, 3 iterations)
+- **Argon2id** hashing with configurable parameters (default: 64MB memory, 3
+  iterations)
 - Default: 64MB memory cost, 3 iterations, 1 thread
 - Minimum password requirements with strength validation
 - No password hints or recovery questions

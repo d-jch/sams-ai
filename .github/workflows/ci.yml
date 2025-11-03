@@ -2,9 +2,9 @@ name: Fresh 2 CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 env:
   DENO_VERSION: v2.x
@@ -14,7 +14,7 @@ jobs:
   lint-and-format:
     name: 🔍 Code Quality
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -38,7 +38,7 @@ jobs:
       - name: ✨ Check formatting
         run: deno fmt --check
 
-      - name: 🔍 Run linter  
+      - name: 🔍 Run linter
         run: deno lint
 
       - name: 🎯 Type check
@@ -48,12 +48,12 @@ jobs:
     name: 🧪 Test Suite
     runs-on: ubuntu-latest
     needs: lint-and-format
-    
+
     services:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_PASSWORD: '!Freedog8'
+          POSTGRES_PASSWORD: "!Freedog8"
           POSTGRES_DB: sams_ai_test
           POSTGRES_USER: postgres
         options: >-
@@ -93,8 +93,8 @@ jobs:
           DATABASE_URL: postgresql://postgres:%21Freedog8@localhost:5432/sams_ai_test
           DB_SSL: false
           JWT_SECRET: ci-test-jwt-secret-32-chars-long
-          ARGON2_MEMORY_COST: 4096  # Reduced for CI performance
-          ARGON2_TIME_COST: 2       # Reduced for CI performance
+          ARGON2_MEMORY_COST: 4096 # Reduced for CI performance
+          ARGON2_TIME_COST: 2 # Reduced for CI performance
           ARGON2_PARALLELISM: 1
           DENO_ENV: test
         run: |
@@ -135,7 +135,7 @@ jobs:
     name: 🏗️ Build & Bundle
     runs-on: ubuntu-latest
     needs: test
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -191,7 +191,7 @@ jobs:
     name: 🔒 Security Audit
     runs-on: ubuntu-latest
     needs: lint-and-format
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -207,16 +207,16 @@ jobs:
       - name: 🔍 Security audit
         run: |
           echo "🔒 Running security checks..."
-          
+
           # Check for sensitive files
           echo "Checking for sensitive files..."
           find . -name "*.key" -o -name "*.pem" -o -name "*.p12" -o -name ".env" | grep -v node_modules || echo "No sensitive files found"
-          
+
           # Analyze dependencies
           echo "Analyzing Deno dependencies..."
           deno info --json main.ts | jq -r '.modules[].specifier' | sort | uniq > dependencies.txt
           echo "Total dependencies: $(wc -l < dependencies.txt)"
-          
+
           # Check for known vulnerable patterns
           echo "Checking for security patterns..."
           grep -r "eval(" . --include="*.ts" --include="*.js" || echo "No eval() usage found"
@@ -226,7 +226,7 @@ jobs:
         continue-on-error: true
         run: |
           echo "🔍 Scanning for vulnerabilities..."
-          
+
           # For future: integrate with security scanning tools
           echo "Security scan completed. No critical vulnerabilities detected."
 
@@ -235,12 +235,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
-    
+
     services:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_PASSWORD: '!Freedog8'
+          POSTGRES_PASSWORD: "!Freedog8"
           POSTGRES_DB: sams_ai_e2e
           POSTGRES_USER: postgres
         options: >-
@@ -250,7 +250,7 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -278,7 +278,7 @@ jobs:
           deno task start &
           APP_PID=$!
           echo "APP_PID=$APP_PID" >> $GITHUB_ENV
-          
+
           # Wait for app to start
           echo "⏳ Waiting for application to be ready..."
           for i in {1..30}; do
@@ -293,23 +293,23 @@ jobs:
       - name: 🧪 Run E2E tests
         run: |
           echo "🎭 Running end-to-end tests..."
-          
+
           # Test homepage
           echo "Testing homepage..."
           curl -f http://localhost:8000/ || exit 1
-          
+
           # Test login page
           echo "Testing login page..."
           curl -f http://localhost:8000/login || exit 1
-          
+
           # Test signup page
           echo "Testing signup page..."
           curl -f http://localhost:8000/signup || exit 1
-          
+
           # Test API routes
           echo "Testing API routes..."
           curl -f http://localhost:8000/api/test || exit 1
-          
+
           echo "✅ All E2E tests passed!"
 
       - name: 🧹 Cleanup
@@ -326,7 +326,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test, build, security, e2e-test]
     if: github.ref == 'refs/heads/main'
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -336,7 +336,7 @@ jobs:
           echo "🎉 All checks passed! Ready for deployment." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### ✅ Completed Checks:" >> $GITHUB_STEP_SUMMARY
-          echo "- Code quality (formatting, linting, type checking)" >> $GITHUB_STEP_SUMMARY  
+          echo "- Code quality (formatting, linting, type checking)" >> $GITHUB_STEP_SUMMARY
           echo "- Unit tests (authentication, middleware)" >> $GITHUB_STEP_SUMMARY
           echo "- Integration tests (routes, API endpoints)" >> $GITHUB_STEP_SUMMARY
           echo "- Build process" >> $GITHUB_STEP_SUMMARY

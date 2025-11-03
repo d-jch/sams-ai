@@ -94,9 +94,9 @@ export class Auth {
    * Create a new session for a user using dual-token security
    * Returns session object, main token, and short-lived JWT for performance
    */
-  async createSession(userId: string): Promise<{ 
-    session: Session; 
-    token: string; 
+  async createSession(userId: string): Promise<{
+    session: Session;
+    token: string;
     jwt: string;
   }> {
     const sessionTokenManager = getSessionTokenManager();
@@ -121,7 +121,7 @@ export class Auth {
     };
   }
 
-    /**
+  /**
    * Validate a JWT session token (fast path - no database query)
    */
   async validateSessionJWT(jwt: string): Promise<SessionValidationResult> {
@@ -135,7 +135,7 @@ export class Auth {
     // For JWT validation, we trust the token contents (no DB query for performance)
     // But we still need the user data
     const user = await this.db.getUserById(session.userId);
-    
+
     if (!user) {
       // User was deleted - JWT is now invalid
       return { session: null, user: null };
@@ -155,7 +155,7 @@ export class Auth {
 
     const sessionTokenManager = getSessionTokenManager();
     const tokenParts = sessionTokenManager.parseSessionToken(token);
-    
+
     if (!tokenParts) {
       return { session: null, user: null };
     }
@@ -179,7 +179,10 @@ export class Auth {
     const now = new Date();
 
     // Check inactivity timeout - delete session if inactive too long
-    if (now.getTime() - session.lastVerifiedAt.getTime() >= this.config.inactivityTimeoutMs) {
+    if (
+      now.getTime() - session.lastVerifiedAt.getTime() >=
+        this.config.inactivityTimeoutMs
+    ) {
       await this.invalidateSession(session.id);
       return { session: null, user: null };
     }
@@ -193,16 +196,17 @@ export class Auth {
     }
 
     // Update lastVerifiedAt if enough time has passed (reduces DB load)
-    const timeSinceLastVerification = now.getTime() - session.lastVerifiedAt.getTime();
+    const timeSinceLastVerification = now.getTime() -
+      session.lastVerifiedAt.getTime();
     if (timeSinceLastVerification >= this.config.activityCheckIntervalMs) {
       session.lastVerifiedAt = now;
       await this.db.updateSessionLastVerified(session.id, now);
-      
+
       // Perform automatic cleanup occasionally during session validation
       // This spreads cleanup load across requests rather than requiring cron jobs
       if (Math.random() < 0.01) { // 1% chance per session validation
         this.performBackgroundCleanup().catch((err: unknown) => {
-          console.error('Background session cleanup failed:', err);
+          console.error("Background session cleanup failed:", err);
         });
       }
     }
@@ -247,10 +251,12 @@ export class Auth {
     try {
       const cleaned = await this.cleanupInactiveSessions();
       if (cleaned > 0) {
-        console.log(`🧹 Background cleanup removed ${cleaned} inactive sessions`);
+        console.log(
+          `🧹 Background cleanup removed ${cleaned} inactive sessions`,
+        );
       }
     } catch (error) {
-      console.error('Failed to perform background session cleanup:', error);
+      console.error("Failed to perform background session cleanup:", error);
     }
   }
 

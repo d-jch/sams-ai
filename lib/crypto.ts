@@ -104,7 +104,7 @@ export class SessionTokenManager {
     const alphabet = "abcdefghijkmnpqrstuvwxyz23456789"; // Human-readable chars
     const bytes = new Uint8Array(length);
     crypto.getRandomValues(bytes);
-    
+
     let result = "";
     for (let i = 0; i < bytes.length; i++) {
       result += alphabet[bytes[i] % alphabet.length];
@@ -118,18 +118,18 @@ export class SessionTokenManager {
   async hashSecret(secret: string): Promise<Uint8Array> {
     const encoder = new TextEncoder();
     const data = encoder.encode(secret);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
     return new Uint8Array(hashBuffer);
   }
 
   /**
    * Generate a session token in format: <SESSION_ID>.<SESSION_SECRET>
    */
-  async generateSessionToken(): Promise<{ 
-    id: string; 
-    secret: string; 
-    secretHash: Uint8Array; 
-    token: string; 
+  async generateSessionToken(): Promise<{
+    id: string;
+    secret: string;
+    secretHash: Uint8Array;
+    token: string;
   }> {
     const id = this.generateSecureRandomString(24); // Session ID
     const secret = this.generateSecureRandomString(32); // Session Secret
@@ -142,13 +142,15 @@ export class SessionTokenManager {
   /**
    * Validate session token and return components
    */
-  parseSessionToken(token: string): { sessionId: string; sessionSecret: string } | null {
-    const parts = token.split('.');
+  parseSessionToken(
+    token: string,
+  ): { sessionId: string; sessionSecret: string } | null {
+    const parts = token.split(".");
     if (parts.length !== 2) return null;
-    
+
     const [sessionId, sessionSecret] = parts;
     if (!sessionId || !sessionSecret) return null;
-    
+
     return { sessionId, sessionSecret };
   }
 
@@ -157,7 +159,7 @@ export class SessionTokenManager {
    */
   constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
     if (a.byteLength !== b.byteLength) return false;
-    
+
     let result = 0;
     for (let i = 0; i < a.byteLength; i++) {
       result |= a[i] ^ b[i]; // XOR accumulation
@@ -168,7 +170,10 @@ export class SessionTokenManager {
   /**
    * Verify session secret against stored hash (constant-time)
    */
-  async verifySessionSecret(providedSecret: string, storedSecretHash: Uint8Array): Promise<boolean> {
+  async verifySessionSecret(
+    providedSecret: string,
+    storedSecretHash: Uint8Array,
+  ): Promise<boolean> {
     const providedHash = await this.hashSecret(providedSecret);
     return this.constantTimeEqual(providedHash, storedSecretHash);
   }

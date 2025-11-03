@@ -18,8 +18,10 @@ class Database {
     // - DB_SSL_REJECT_UNAUTHORIZED=true|false (whether to verify server cert)
     // - DB_SSL_CA_PATH=/path/to/ca.pem (optional path to CA cert file)
 
-    const useTlsEnv = (Deno.env.get("DB_SSL") || Deno.env.get("PGSSLMODE") || "").toLowerCase();
-    const useTls = useTlsEnv === "true" || useTlsEnv === "require" || databaseUrl.includes("rds.amazonaws.com");
+    const useTlsEnv =
+      (Deno.env.get("DB_SSL") || Deno.env.get("PGSSLMODE") || "").toLowerCase();
+    const useTls = useTlsEnv === "true" || useTlsEnv === "require" ||
+      databaseUrl.includes("rds.amazonaws.com");
 
     if (!useTls) {
       // No TLS requested — pass connection string directly
@@ -33,10 +35,13 @@ class Database {
     const password = decodeURIComponent(url.password || "");
     const hostname = url.hostname;
     const port = url.port ? Number(url.port) : 5432;
-    const database = url.pathname && url.pathname !== "/" ? url.pathname.slice(1) : undefined;
+    const database = url.pathname && url.pathname !== "/"
+      ? url.pathname.slice(1)
+      : undefined;
 
     // TLS options
-    const rejectUnauthorizedEnv = (Deno.env.get("DB_SSL_REJECT_UNAUTHORIZED") || "true").toLowerCase();
+    const rejectUnauthorizedEnv =
+      (Deno.env.get("DB_SSL_REJECT_UNAUTHORIZED") || "true").toLowerCase();
     const rejectUnauthorized = rejectUnauthorizedEnv !== "false";
 
     // Optional CA certificate (path)
@@ -74,7 +79,11 @@ class Database {
     config.tls = tlsObj;
 
     // Pass config object to Pool. Cast to unknown to satisfy the imported Pool type
-    this.pool = new Pool(config as unknown as Record<string, unknown>, 10, true);
+    this.pool = new Pool(
+      config as unknown as Record<string, unknown>,
+      10,
+      true,
+    );
   }
 
   async connect() {
@@ -204,7 +213,10 @@ class Database {
     };
   }
 
-  async updateSessionLastVerified(sessionId: string, lastVerifiedAt: Date): Promise<void> {
+  async updateSessionLastVerified(
+    sessionId: string,
+    lastVerifiedAt: Date,
+  ): Promise<void> {
     using client = await this.pool.connect();
 
     await client.queryObject(
@@ -240,14 +252,15 @@ class Database {
   async cleanupInactiveSessions(cutoffTime: Date): Promise<number> {
     using client = await this.pool.connect();
 
-    const result = await client.queryObject(`
+    const result = await client.queryObject(
+      `
       DELETE FROM sessions WHERE last_verified_at < $1
-    `, [cutoffTime]);
+    `,
+      [cutoffTime],
+    );
 
     return result.rowCount || 0;
   }
-
-
 
   // Helper methods
   private mapUserRowToUser(row: UserRow): User {
@@ -302,16 +315,32 @@ export async function initializeDatabase(): Promise<void> {
   } catch (err) {
     // If sessions table doesn't exist, log actionable guidance instead of crashing the dev server.
     // Postgres 'relation does not exist' error code is 42P01.
-    const e = err as unknown as { fields?: Record<string, unknown>; code?: string; message?: unknown };
-    const code = (e.fields && (e.fields["code"] as string | undefined)) || e.code;
+    const e = err as unknown as {
+      fields?: Record<string, unknown>;
+      code?: string;
+      message?: unknown;
+    };
+    const code = (e.fields && (e.fields["code"] as string | undefined)) ||
+      e.code;
     const message = typeof e.message === "string" ? e.message : String(err);
-    if (code === "42P01" || /relation\s+"sessions"\s+does not exist/i.test(message)) {
-      console.warn("❌ Database cleanup skipped: the 'sessions' table does not exist.");
-      console.warn("   To create required tables, apply the SQL schema located at: sql/schema.sql");
+    if (
+      code === "42P01" ||
+      /relation\s+"sessions"\s+does not exist/i.test(message)
+    ) {
+      console.warn(
+        "❌ Database cleanup skipped: the 'sessions' table does not exist.",
+      );
+      console.warn(
+        "   To create required tables, apply the SQL schema located at: sql/schema.sql",
+      );
       console.warn("   Example (psql):");
-      console.warn("     psql \"$DATABASE_URL\" -f sql/schema.sql");
-      console.warn("   Or connect with your usual Postgres client and run the file contents.");
-      console.warn("   If you're using TLS/CA for the DB, ensure DB_SSL and DB_SSL_CA_PATH are set when running the command.");
+      console.warn('     psql "$DATABASE_URL" -f sql/schema.sql');
+      console.warn(
+        "   Or connect with your usual Postgres client and run the file contents.",
+      );
+      console.warn(
+        "   If you're using TLS/CA for the DB, ensure DB_SSL and DB_SSL_CA_PATH are set when running the command.",
+      );
     } else {
       // Unknown error — rethrow so it surfaces during initialization
       console.error("Failed to initialize database:", err);

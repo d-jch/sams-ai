@@ -1,6 +1,6 @@
 import { App, staticFiles } from "fresh";
 import { type State } from "@/utils.ts";
-import { initializeDatabase, getDatabase } from "@/lib/db.ts";
+import { getDatabase, initializeDatabase } from "@/lib/db.ts";
 
 export const app = new App<State>();
 
@@ -30,10 +30,10 @@ app.fsRoutes();
 app.get("/health", async (_ctx) => {
   const db = getDatabase();
   const isDbHealthy = await db.healthCheck();
-  
+
   const status = isDbHealthy ? "healthy" : "unhealthy";
   const httpStatus = isDbHealthy ? 200 : 503;
-  
+
   return Response.json({
     status,
     timestamp: new Date().toISOString(),
@@ -43,10 +43,10 @@ app.get("/health", async (_ctx) => {
     components: {
       database: isDbHealthy ? "healthy" : "unhealthy",
       authentication: "healthy", // Always healthy if service is running
-      sessions: "healthy" // Session system status
+      sessions: "healthy", // Session system status
     },
     checks: {
-      database_connection: isDbHealthy
-    }
+      database_connection: isDbHealthy,
+    },
   }, { status: httpStatus });
 });

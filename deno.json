@@ -9,7 +9,7 @@
     "test": "deno test -A",
     "test:watch": "deno test -A --watch",
     "test:auth": "deno test -A --filter auth",
-    "test:middleware": "deno test -A --filter middleware", 
+    "test:middleware": "deno test -A --filter middleware",
     "test:routes": "deno test -A --filter routes",
     "test:api": "deno test -A --filter api",
     "setup:deployment": "deno run -A scripts/setup-deployment.ts"

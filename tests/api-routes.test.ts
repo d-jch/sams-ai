@@ -41,7 +41,9 @@ Deno.test("API route - handles URL encoded names", async () => {
     })
     .handler();
 
-  const response = await app(new Request("http://localhost/api/Fresh%20Framework"));
+  const response = await app(
+    new Request("http://localhost/api/Fresh%20Framework"),
+  );
   const text = await response.text();
 
   expect(response.status).toBe(200);

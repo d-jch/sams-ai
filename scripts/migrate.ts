@@ -22,7 +22,9 @@ const filePath = args.file || "sql/schema.sql";
 const databaseUrl = args["database-url"] || Deno.env.get("DATABASE_URL");
 
 if (!databaseUrl) {
-  console.error("DATABASE_URL not provided. Set env var DATABASE_URL or pass --database-url='");
+  console.error(
+    "DATABASE_URL not provided. Set env var DATABASE_URL or pass --database-url='",
+  );
   Deno.exit(2);
 }
 
@@ -42,7 +44,9 @@ try {
     // Try to release the client if available
     try {
       // @ts-ignore - release may be named release or done depending on client
-      await (client.release ? client.release() : (client.done ? client.done() : Promise.resolve()));
+      await (client.release
+        ? client.release()
+        : (client.done ? client.done() : Promise.resolve()));
     } catch (_e) {
       // ignore
     }

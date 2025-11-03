@@ -1,4 +1,4 @@
-import { SignJWT, jwtVerify, type JWTPayload } from "@panva/jose";
+import { type JWTPayload, jwtVerify, SignJWT } from "@panva/jose";
 import type { Session } from "./types.ts";
 
 /**
@@ -46,7 +46,7 @@ export class JWTSessionManager {
       aud: this.config.audience,
       iat: now,
       exp: now + this.config.expirationSeconds,
-      
+
       // Custom session data (exclude sensitive secretHash)
       session: {
         id: session.id,
@@ -74,13 +74,15 @@ export class JWTSessionManager {
       });
 
       const sessionPayload = payload as SessionJWTPayload;
-      
+
       // Validate session structure
-      if (!sessionPayload.session || 
-          typeof sessionPayload.session.id !== "string" ||
-          typeof sessionPayload.session.userId !== "string" ||
-          typeof sessionPayload.session.lastVerifiedAt !== "number" ||
-          typeof sessionPayload.session.fresh !== "boolean") {
+      if (
+        !sessionPayload.session ||
+        typeof sessionPayload.session.id !== "string" ||
+        typeof sessionPayload.session.userId !== "string" ||
+        typeof sessionPayload.session.lastVerifiedAt !== "number" ||
+        typeof sessionPayload.session.fresh !== "boolean"
+      ) {
         return null;
       }
 
@@ -96,7 +98,10 @@ export class JWTSessionManager {
       return session;
     } catch (error) {
       // JWT validation failed (expired, invalid signature, etc.)
-      console.debug("JWT validation failed:", error instanceof Error ? error.message : String(error));
+      console.debug(
+        "JWT validation failed:",
+        error instanceof Error ? error.message : String(error),
+      );
       return null;
     }
   }
@@ -120,10 +125,12 @@ export function getJWTSessionManager(): JWTSessionManager {
 
     if (jwtSecretEnv) {
       // Decode base64 secret from environment
-      jwtSecret = Uint8Array.from(atob(jwtSecretEnv), c => c.charCodeAt(0));
+      jwtSecret = Uint8Array.from(atob(jwtSecretEnv), (c) => c.charCodeAt(0));
     } else {
       // Development: Generate a random key (will invalidate JWTs on restart)
-      console.warn("⚠️ No JWT_SECRET environment variable found. Using random key for development.");
+      console.warn(
+        "⚠️ No JWT_SECRET environment variable found. Using random key for development.",
+      );
       jwtSecret = JWTSessionManager.generateSecretKey();
     }
 

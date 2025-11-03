@@ -1,4 +1,4 @@
-import { getCookies, setCookie, deleteCookie } from "@std/http/cookie";
+import { deleteCookie, getCookies, setCookie } from "@std/http/cookie";
 import { define } from "@/utils.ts";
 import { getAuth } from "@/lib/auth.ts";
 
@@ -11,7 +11,7 @@ const JWT_COOKIE_NAME = "auth_jwt";
 /**
  * Get session tokens from request cookies using @std/http
  */
-function getSessionTokensFromRequest(req: Request): { 
+function getSessionTokensFromRequest(req: Request): {
   sessionToken: string | null;
   jwt: string | null;
 } {
@@ -48,7 +48,7 @@ export default define.middleware(async (ctx) => {
             return jwtResult;
           }
         }
-        
+
         // Fallback to traditional session token if JWT validation failed
         if (sessionToken) {
           return await auth.validateSession(sessionToken);
@@ -122,7 +122,7 @@ export function setSessionCookies(
   jwt: string,
 ): Response {
   const newHeaders = new Headers(response.headers);
-  
+
   // Main session token (long-lived)
   setCookie(newHeaders, {
     name: SESSION_COOKIE_NAME,
@@ -182,7 +182,7 @@ export function setSessionCookie(
  */
 export function clearSessionCookies(response: Response): Response {
   const newHeaders = new Headers(response.headers);
-  
+
   // Clear both cookies
   deleteCookie(newHeaders, SESSION_COOKIE_NAME, { path: "/" });
   deleteCookie(newHeaders, JWT_COOKIE_NAME, { path: "/" });

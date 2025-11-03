@@ -1,42 +1,97 @@
----
 name: ✨ Feature Request
-about: Suggest an idea for this project
-title: '[FEATURE] '
-labels: ['enhancement']
-assignees: ''
----
+description: Suggest an idea for this project
+title: "[FEATURE] "
+labels: ["enhancement"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a new feature! Please provide the details below.
 
-## ✨ Feature Description
-A clear and concise description of the feature you'd like to see.
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: ✨ Feature Description
+      description: A clear and concise description of the feature you'd like to see.
+      placeholder: Describe the feature you want...
+    validations:
+      required: true
 
-## 🎯 Problem Statement
-What problem does this feature solve? Is your feature request related to a problem?
+  - type: textarea
+    id: problem-statement
+    attributes:
+      label: 🎯 Problem Statement
+      description: What problem does this feature solve? Is your feature request related to a problem?
+      placeholder: Explain the problem this feature would solve...
+    validations:
+      required: true
 
-## 💡 Proposed Solution
-A clear and concise description of what you want to happen.
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: 💡 Proposed Solution
+      description: A clear and concise description of what you want to happen.
+      placeholder: Describe your solution...
+    validations:
+      required: true
 
-## 🔄 Alternative Solutions
-A clear description of any alternative solutions or features you've considered.
+  - type: textarea
+    id: alternative-solutions
+    attributes:
+      label: 🔄 Alternative Solutions
+      description: A clear description of any alternative solutions or features you've considered.
+      placeholder: Describe any alternative approaches...
 
-## 📋 Acceptance Criteria
-- [ ] Criterion 1
-- [ ] Criterion 2
-- [ ] Criterion 3
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: 📋 Acceptance Criteria
+      description: List the criteria that must be met for this feature to be considered complete.
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+        - [ ] Criterion 3
+    validations:
+      required: true
 
-## 🧪 Testing Strategy
-How should this feature be tested?
+  - type: textarea
+    id: testing-strategy
+    attributes:
+      label: 🧪 Testing Strategy
+      description: How should this feature be tested?
+      placeholder: Describe how to test this feature...
 
-## 📖 Documentation
-What documentation needs to be updated or created?
+  - type: textarea
+    id: documentation
+    attributes:
+      label: 📖 Documentation
+      description: What documentation needs to be updated or created?
+      placeholder: List documentation changes needed...
 
-## 🔗 Related Issues
-Link any related issues or PRs.
+  - type: textarea
+    id: related-issues
+    attributes:
+      label: 🔗 Related Issues
+      description: Link any related issues or PRs.
+      placeholder: e.g. Related to #123
 
-## 🤔 Additional Context
-Add any other context, mockups, or examples about the feature request here.
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: 🤔 Additional Context
+      description: Add any other context, mockups, or examples about the feature request here.
+      placeholder: Any additional information, mockups, or examples...
 
-## 📊 Priority
-- [ ] Low - Nice to have
-- [ ] Medium - Important for user experience
-- [ ] High - Critical for functionality
-- [ ] Urgent - Blocking other work
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 📊 Priority
+      description: How important is this feature?
+      options:
+        - Low - Nice to have
+        - Medium - Important for user experience
+        - High - Critical for functionality
+        - Urgent - Blocking other work
+    validations:
+      required: true

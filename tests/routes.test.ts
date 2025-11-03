@@ -40,20 +40,20 @@ Deno.test("Auth route logic - unauthenticated user gets page data", async () => 
 Deno.test("Auth route logic - authenticated user gets redirected to dashboard", async () => {
   // Create middleware to simulate authenticated user
   const authMiddleware = define.middleware((ctx) => {
-    ctx.state.user = { 
-      id: "1", 
-      email: "test@example.com", 
+    ctx.state.user = {
+      id: "1",
+      email: "test@example.com",
       name: "Test User",
       emailVerified: true,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
-    ctx.state.session = { 
-      id: "test-session", 
+    ctx.state.session = {
+      id: "test-session",
       userId: "1",
       lastVerifiedAt: new Date(),
       fresh: true,
-      secretHash: new Uint8Array([1, 2, 3, 4])
+      secretHash: new Uint8Array([1, 2, 3, 4]),
     };
     return ctx.next();
   });
@@ -86,7 +86,7 @@ Deno.test("Auth route logic - authenticated user gets redirected to dashboard", 
     .handler();
 
   const response = await app(new Request("http://localhost/login"));
-  
+
   expect(response.status).toBe(302);
   expect(response.headers.get("Location")).toBe("/dashboard");
 });
@@ -94,20 +94,20 @@ Deno.test("Auth route logic - authenticated user gets redirected to dashboard", 
 Deno.test("Auth route logic - authenticated user gets redirected to custom URL", async () => {
   // Create middleware to simulate authenticated user
   const authMiddleware = define.middleware((ctx) => {
-    ctx.state.user = { 
-      id: "1", 
-      email: "test@example.com", 
+    ctx.state.user = {
+      id: "1",
+      email: "test@example.com",
       name: "Test User",
       emailVerified: true,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
-    ctx.state.session = { 
-      id: "test-session", 
+    ctx.state.session = {
+      id: "test-session",
       userId: "1",
       lastVerifiedAt: new Date(),
       fresh: true,
-      secretHash: new Uint8Array([1, 2, 3, 4])
+      secretHash: new Uint8Array([1, 2, 3, 4]),
     };
     return ctx.next();
   });
@@ -139,8 +139,10 @@ Deno.test("Auth route logic - authenticated user gets redirected to custom URL",
     })
     .handler();
 
-  const response = await app(new Request("http://localhost/login?redirect=/profile"));
-  
+  const response = await app(
+    new Request("http://localhost/login?redirect=/profile"),
+  );
+
   expect(response.status).toBe(302);
   expect(response.headers.get("Location")).toBe("/profile");
 });

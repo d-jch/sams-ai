@@ -1,45 +1,113 @@
----
 name: 🐛 Bug Report
-about: Create a report to help us improve
-title: '[BUG] '
-labels: ['bug']
-assignees: ''
----
+description: Create a report to help us improve
+title: "[BUG] "
+labels: ["bug"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report a bug! Please fill out the information below.
 
-## 🐛 Bug Description
-A clear and concise description of what the bug is.
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: 🐛 Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe the bug...
+    validations:
+      required: true
 
-## 🔄 Steps to Reproduce
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '...'
-3. Scroll down to '...'
-4. See error
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: 🔄 Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
 
-## ✅ Expected Behavior
-A clear and concise description of what you expected to happen.
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: ✅ Expected Behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: What should have happened instead?
+    validations:
+      required: true
 
-## 📷 Screenshots
-If applicable, add screenshots to help explain your problem.
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 📷 Screenshots
+      description: If applicable, add screenshots to help explain your problem.
+      placeholder: Drag and drop screenshots here
 
-## 🖥️ Environment
-- **OS**: [e.g. Ubuntu 22.04, macOS 14]
-- **Browser**: [e.g. Chrome 119, Firefox 120]
-- **Deno Version**: [e.g. v2.0.0]
-- **Fresh Version**: [e.g. 2.1.4]
+  - type: dropdown
+    id: os
+    attributes:
+      label: 🖥️ Operating System
+      description: What operating system are you using?
+      options:
+        - Ubuntu
+        - macOS
+        - Windows
+        - Other Linux
+        - Other
+    validations:
+      required: true
 
-## 🔍 Additional Context
-Add any other context about the problem here.
+  - type: input
+    id: browser
+    attributes:
+      label: 🌐 Browser
+      description: What browser are you using?
+      placeholder: e.g. Chrome 119, Firefox 120, Safari 17
+    validations:
+      required: true
 
-## 🧪 Test Case
-If possible, provide a minimal test case that reproduces the issue.
+  - type: input
+    id: deno-version
+    attributes:
+      label: 🦕 Deno Version
+      description: What version of Deno are you using?
+      placeholder: e.g. v2.0.0
+    validations:
+      required: true
 
-```typescript
-// Minimal reproduction code
-```
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: 🔍 Additional Context
+      description: Add any other context about the problem here.
+      placeholder: Any additional information that might be helpful...
 
-## 📋 Checklist
-- [ ] I have searched existing issues to avoid duplicates
-- [ ] I have provided all requested information
-- [ ] I can reproduce this issue consistently
-- [ ] This issue affects the latest version
+  - type: textarea
+    id: test-case
+    attributes:
+      label: 🧪 Test Case
+      description: If possible, provide a minimal test case that reproduces the issue.
+      placeholder: |
+        ```typescript
+        // Minimal reproduction code
+        ```
+      render: typescript
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 📋 Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched existing issues to avoid duplicates
+          required: true
+        - label: I have provided all requested information
+          required: true
+        - label: I can reproduce this issue consistently
+          required: true
+        - label: This issue affects the latest version
+          required: true

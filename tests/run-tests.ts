@@ -3,7 +3,7 @@
  * Test runner with enhanced output and filtering options
  * Usage:
  *   deno run -A tests/run-tests.ts [filter]
- *   
+ *
  * Examples:
  *   deno run -A tests/run-tests.ts              # Run all tests
  *   deno run -A tests/run-tests.ts auth         # Run tests matching "auth"
@@ -16,7 +16,7 @@ const COLORS = {
   yellow: "\x1b[33m",
   blue: "\x1b[34m",
   reset: "\x1b[0m",
-  bold: "\x1b[1m"
+  bold: "\x1b[1m",
 };
 
 function colorize(color: keyof typeof COLORS, text: string): string {
@@ -30,40 +30,40 @@ function printBanner() {
 
 async function runTests(filter?: string) {
   printBanner();
-  
+
   const cmd = ["deno", "test", "-A"];
-  
+
   // Add filter if provided
   if (filter) {
     cmd.push("--filter", filter);
     console.log(colorize("yellow", `📋 Filter: ${filter}`));
   }
-  
+
   console.log(colorize("blue", "🚀 Running tests...\n"));
-  
+
   const process = new Deno.Command(cmd[0], {
     args: cmd.slice(1),
     stdout: "inherit",
-    stderr: "inherit"
+    stderr: "inherit",
   });
-  
+
   const { success, code } = await process.output();
-  
+
   console.log("\n" + "━".repeat(50));
-  
+
   if (success) {
     console.log(colorize("green", "✅ All tests passed!"));
   } else {
     console.log(colorize("red", `❌ Tests failed (exit code: ${code})`));
   }
-  
+
   return success;
 }
 
 async function main() {
   const args = Deno.args;
   const filter = args[0];
-  
+
   // Show help
   if (args.includes("--help") || args.includes("-h")) {
     console.log(`
@@ -90,7 +90,7 @@ Available test files:
 `);
     return;
   }
-  
+
   const success = await runTests(filter);
   Deno.exit(success ? 0 : 1);
 }
