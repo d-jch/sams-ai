@@ -324,6 +324,10 @@ jobs:
     environment:
       name: production
 
+    permissions:
+      id-token: write # Needed for auth with Deno Deploy
+      contents: read # Needed to clone the repository
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -353,18 +357,12 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "🚀 **Ready to deploy to production!**" >> $GITHUB_STEP_SUMMARY
 
-      - name: 🚀 Deployment simulation
-        run: |
-          echo "🎯 Deployment Target: Production Environment"
-          echo "📦 Build Artifacts: $(ls -la _fresh/ | wc -l) files ready"
-          echo "🔧 Entry Point: main.ts"
-          echo ""
-          echo "To enable automatic deployment:"
-          echo "1. Create a Deno Deploy project"
-          echo "2. Add DENO_DEPLOY_TOKEN to repository secrets"
-          echo "3. Uncomment deployment steps in workflow"
-          echo ""
-          echo "✅ All systems ready for deployment!"
+      - name: 🚀 Deploy to Deno Deploy
+        uses: denoland/deployctl@v1
+        with:
+          project: "sams-ai"
+          entrypoint: "main.ts"
+          root: "."
 
       - name: 📋 Create deployment artifact
         uses: actions/upload-artifact@v4

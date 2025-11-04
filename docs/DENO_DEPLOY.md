@@ -1,0 +1,214 @@
+# 🚀 Deno Deploy 新版本部署指南
+
+本项目配置为自动部署到 **Deno Deploy 新版本**（console.deno.com），使用 GitHub
+App 集成。
+
+## 🎯 部署方式选择
+
+### 方式1：GitHub App 集成（推荐）
+
+- 自动检测 Fresh 2 项目
+- 无需配置 token，使用 GitHub App 认证
+- 支持预览部署和生产部署
+- 完全托管的构建过程
+
+### 方式2：GitHub Actions 部署
+
+- 使用现有的 CI/CD 流水线
+- 需要 `id-token: write` 权限
+- 支持自定义构建步骤
+
+## 🚀 快速开始
+
+### 1. 设置 Deno Deploy 项目
+
+1. 访问 [console.deno.com](https://console.deno.com)
+2. 创建组织（如果没有）
+3. 点击 "New App"
+4. 选择此 GitHub 仓库
+5. 配置如下：
+   - **Framework**: Fresh
+   - **Install command**: `deno install`
+   - **Build command**: `deno task build`
+   - **Entrypoint**: `main.ts`
+
+### 2. 环境变量配置
+
+在 Deno Deploy 控制台的应用设置中添加：
+
+```bash
+# 数据库配置
+DATABASE_URL=postgresql://user:password@host:port/database
+DB_SSL=true
+
+# JWT 配置  
+JWT_SECRET=your-secure-jwt-secret-at-least-32-chars
+
+# Argon2 配置（可选）
+ARGON2_MEMORY_COST=65536
+ARGON2_TIME_COST=3
+ARGON2_PARALLELISM=4
+
+# 应用环境
+DENO_ENV=production
+```
+
+### 3. 数据库准备
+
+推荐使用云数据库服务：
+
+#### Supabase
+
+```bash
+# 1. 创建 Supabase 项目
+# 2. 获取连接字符串
+# 3. 运行迁移
+deno run -A scripts/migrate.ts
+```
+
+#### Neon
+
+```bash
+# 1. 创建 Neon 项目
+# 2. 获取连接字符串
+# 3. 运行迁移
+deno run -A scripts/migrate.ts
+```
+
+## 🔄 部署流程
+
+### 自动部署
+
+- **生产部署**: 推送到 `main` 分支自动触发
+- **预览部署**: 创建 Pull Request 自动触发
+- **分支部署**: 推送到其他分支创建预览
+
+### 手动部署
+
+```bash
+# 使用 deployctl CLI
+deno install -A jsr:@deno/deployctl
+deployctl deploy --project=sams-ai main.ts
+```
+
+## 🏗️ 构建配置
+
+项目已配置 Fresh 2 构建：
+
+```json
+{
+  "tasks": {
+    "dev": "vite",
+    "build": "vite build",
+    "start": "deno serve -A _fresh/server.js",
+    "preview": "deno task build && deno task start"
+  }
+}
+```
+
+构建产物位于 `_fresh/` 目录，包括：
+
+- 客户端资源（CSS、JS）
+- 服务器入口文件
+- 静态资源
+
+## 🔍 监控和调试
+
+### Deno Deploy 控制台功能
+
+- 实时构建日志
+- 应用性能指标
+- 错误日志和追踪
+- 流量分析
+
+### 本地测试
+
+```bash
+# 测试完整构建流程
+deno task preview
+
+# 仅测试构建
+deno task build
+
+# 检查构建输出
+ls -la _fresh/
+```
+
+## 🛡️ 安全配置
+
+### 环境变量管理
+
+- 生产环境变量在 Deno Deploy 控制台配置
+- 开发环境变量使用 `.env` 文件（不提交到 git）
+- 敏感信息使用 "Secret" 类型环境变量
+
+### 权限控制
+
+```typescript
+// main.ts 中的权限配置
+const app = new App({ root: import.meta.url })
+  .use(staticFiles())
+  .use(auth()) // 认证中间件
+  .use(cors()); // CORS 配置
+```
+
+## 📊 性能优化
+
+### Fresh 2 优化
+
+- 自动代码分割
+- 服务端渲染（SSR）
+- 静态资源压缩
+- 智能缓存
+
+### Deno Deploy 优化
+
+- 全球 CDN 分发
+- 边缘计算
+- 自动缩放
+- HTTP/2 支持
+
+## 🆘 故障排除
+
+### 常见问题
+
+#### 构建失败
+
+```bash
+# 检查依赖
+deno info main.ts
+
+# 本地测试构建
+deno task build
+```
+
+#### 数据库连接问题
+
+```bash
+# 测试连接
+deno run -A scripts/test-db.ts
+
+# 检查环境变量
+echo $DATABASE_URL
+```
+
+#### 权限错误
+
+- 检查 Deno Deploy GitHub App 权限
+- 验证仓库访问权限
+- 确认环境变量配置
+
+### 调试步骤
+
+1. 检查 Deno Deploy 构建日志
+2. 验证本地构建成功
+3. 比较环境变量配置
+4. 测试数据库连接
+5. 检查应用日志
+
+## 🔗 相关链接
+
+- [Deno Deploy 文档](https://docs.deno.com/deploy/)
+- [Fresh 2 文档](https://fresh.deno.dev/)
+- [GitHub Actions 配置](../.github/workflows/ci.yml)
+- [数据库迁移脚本](../scripts/migrate.ts)

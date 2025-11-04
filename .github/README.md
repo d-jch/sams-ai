@@ -55,10 +55,10 @@ Actions实现全面的CI/CD流程，确保代码质量、测试覆盖率和安�
 
 ### 必需的GitHub Secrets
 
-#### 🔑 设置 DENO_DEPLOY_TOKEN
+#### 🔑 设置 Deno Deploy 集成
 
-1. **创建Deno Deploy账户**
-   - 访问 [Deno Deploy](https://deno.com/deploy)
+1. **创建Deno Deploy应用（新版本）**
+   - 访问 [console.deno.com](https://console.deno.com)
    - 使用GitHub账户登录
 
 2. **生成访问令牌**
@@ -72,7 +72,7 @@ Actions实现全面的CI/CD流程，确保代码质量、测试覆盖率和安�
    - 进入你的GitHub仓库
    - 点击 `Settings` → `Secrets and variables` → `Actions`
    - 点击 `New repository secret`
-   - Name: `DENO_DEPLOY_TOKEN`
+   - 不再需要 `DENO_DEPLOY_TOKEN`（使用 GitHub App 集成）
    - Secret: 粘贴刚才复制的令牌
    - 点击 `Add secret`
 

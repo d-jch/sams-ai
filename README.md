@@ -1,7 +1,7 @@
 # 🤖 Sams AI - Fresh 2 Authentication System
 
 [![CI/CD Pipeline](https://github.com/yourusername/sams-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/sams-ai/actions/workflows/ci.yml)
-[![Deploy Status](https://github.com/yourusername/sams-ai/actions/workflows/deploy.yml/badge.svg)](https://github.com/yourusername/sams-ai/actions/workflows/deploy.yml)
+[![Deployment Status](https://github.com/d-jch/sams-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/d-jch/sams-ai/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/yourusername/sams-ai/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/sams-ai)
 [![Deno Version](https://img.shields.io/badge/deno-v2.x-black.svg)](https://deno.land/)
 [![Fresh Version](https://img.shields.io/badge/fresh-v2.1.4-brightgreen.svg)](https://fresh.deno.dev/)
@@ -253,21 +253,63 @@ psql -d sams_ai_auth -f sql/migrations/001_new_feature.sql
 
 ## 🚀 Production Deployment
 
-### Environment Variables for Production
+This project is configured for automatic deployment to **Deno Deploy** (new
+version) using GitHub integration.
 
-```env
-APP_ENV=production
-DATABASE_URL=postgresql://user:pass@prod-host:5432/db
-SESSION_SECRET=your-production-secret-min-32-chars
-ARGON2_MEMORY_COST=131072  # 128MB for production
-ARGON2_TIME_COST=4         # Higher iterations for production
+### Quick Deploy Setup
+
+1. **Create Deno Deploy App**
+   - Visit [console.deno.com](https://console.deno.com)
+   - Create organization and new app named `sams-ai`
+   - Connect to this GitHub repository
+   - Framework: **Fresh**, Build: `deno task build`, Entry: `main.ts`
+
+2. **Configure Environment Variables**
+   ```env
+   # Database (required)
+   DATABASE_URL=postgresql://user:pass@host:port/db
+   DB_SSL=true
+
+   # Security (required)
+   JWT_SECRET=your-production-secret-min-32-chars
+
+   # Performance (optional)
+   ARGON2_MEMORY_COST=131072
+   ARGON2_TIME_COST=4
+   ARGON2_PARALLELISM=4
+
+   # Environment
+   DENO_ENV=production
+   ```
+
+3. **Deploy Automatically**
+   - Push to `main` branch → Production deployment
+   - Create Pull Request → Preview deployment
+   - Branch push → Development deployment
+
+### Database Setup (Production)
+
+Recommended cloud PostgreSQL services:
+
+- **Supabase**: [supabase.com](https://supabase.com) (Free tier available)
+- **Neon**: [neon.tech](https://neon.tech) (Serverless PostgreSQL)
+- **Railway**: [railway.app](https://railway.app) (Simple deployment)
+
+After creating database, run migrations:
+
+```bash
+deno run -A scripts/migrate.ts
 ```
 
 ### Security Checklist
 
-- [ ] Use HTTPS in production
-- [ ] Set strong session secrets
-- [ ] Configure rate limiting
+- [x] HTTPS enforced by Deno Deploy
+- [x] Session secrets (32+ characters)
+- [x] Argon2id password hashing
+- [x] CSRF protection enabled
+- [x] Input validation and sanitization
+- [ ] Rate limiting (configure as needed)
+- [ ] Custom domain setup (optional)
 - [ ] Enable database SSL
 - [ ] Set secure cookie flags
 - [ ] Regular security audits

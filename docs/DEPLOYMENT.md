@@ -1,32 +1,37 @@
-# 🚀 部署配置指南
+# 🚀 部署配置指南 - 基于 Deno Deploy 最新版本
 
-这个指南将帮助你完整配置Fresh 2应用的CI/CD部署流程。
+这个指南将帮助你完整配置 Fresh 2 应用到 **Deno Deploy（新版本）**
+的自动化部署流程。
 
 ## 📋 前置条件
 
-- GitHub账户和仓库
-- Deno Deploy账户
-- PostgreSQL数据库（生产环境）
+- GitHub 账户和仓库
+- Deno Deploy 新版本账户（console.deno.com）
+- PostgreSQL 数据库（推荐 Supabase 或 Neon）
 
-## 🔧 步骤1: 设置Deno Deploy
+## 🔧 步骤1: 设置 Deno Deploy（新版本）
 
-### 1.1 创建Deno Deploy账户
+### 1.1 创建 Deno Deploy 账户
 
-1. 访问 [https://deno.com/deploy](https://deno.com/deploy)
+1. 访问 [https://console.deno.com](https://console.deno.com)
 2. 点击 "Sign in with GitHub"
-3. 授权Deno Deploy访问你的GitHub账户
+3. 授权 Deno Deploy 访问你的 GitHub 账户
 
-### 1.2 生成访问令牌
+### 1.2 创建组织和应用
 
-1. 进入 [Account Settings](https://dash.deno.com/account#access-tokens)
-2. 点击 "New Access Token"
-3. 填写令牌信息：
+1. 在 console.deno.com 创建新组织
+2. 创建新应用，名称为 `sams-ai`
+3. 选择 GitHub 仓库集成
+
+4. 进入 [Account Settings](https://dash.deno.com/account#access-tokens)
+5. 点击 "New Access Token"
+6. 填写令牌信息：
    ```
    Description: sams-ai-github-actions
    Permissions: All projects (或选择特定项目)
    ```
-4. 点击 "Create"
-5. **重要**: 立即复制令牌（只显示一次）
+7. 点击 "Create"
+8. **重要**: 立即复制令牌（只显示一次）
 
 ### 1.3 创建项目
 
