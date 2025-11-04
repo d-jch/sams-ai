@@ -325,7 +325,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: fresh-build
-          
+
       - name: Deployment notification
         run: |
           echo "🚀 Build artifacts ready for Deno Deploy"

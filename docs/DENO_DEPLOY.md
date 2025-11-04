@@ -21,6 +21,7 @@ App 集成。
 ## 🚀 部署到 Deno Deploy
 
 > **重要说明**: Deno Deploy 分为两个版本，请选择适合的部署方式：
+>
 > - **新版 Deno Deploy** (console.deno.com) - 推荐，功能更全面
 > - **Deploy Classic** (dash.deno.com) - 将逐步被新版替代
 
@@ -185,12 +186,14 @@ echo $DATABASE_URL
 ### 部署方式对比
 
 **新版 Deno Deploy (当前配置)**:
+
 - ✅ GitHub App 自动集成
 - ✅ 无需 deployctl 配置
 - ✅ 自动构建和部署
 - ✅ 实时构建日志
 
 **Deploy Classic (旧版)**:
+
 - 🟠 需要 deployctl GitHub Action
 - 🟠 手动配置 token
 - 🟠 YAML 配置管理
