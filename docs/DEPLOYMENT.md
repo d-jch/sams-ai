@@ -1,34 +1,29 @@
 # 🚀 新版 Deno Deploy 部署指南# 🚀 新版 Deno Deploy 部署指南
 
+这个指南将帮助你使用 **新版 Deno Deploy** (console.deno.com) 部署 Fresh 2
+应用。这个指南将帮助你使用 **新版 Deno Deploy** (console.deno.com) 部署 Fresh 2
+应用。
 
-
-这个指南将帮助你使用 **新版 Deno Deploy** (console.deno.com) 部署 Fresh 2 应用。这个指南将帮助你使用 **新版 Deno Deploy** (console.deno.com) 部署 Fresh 2 应用。
-
-新版 Deno Deploy 使用 GitHub App 集成，提供零配置自动部署体验。新版 Deno Deploy 使用 GitHub App 集成，提供零配置自动部署体验。
-
-
+新版 Deno Deploy 使用 GitHub App 集成，提供零配置自动部署体验。新版 Deno Deploy
+使用 GitHub App 集成，提供零配置自动部署体验。
 
 ## 📋 前置条件## 📋 前置条件
 
-
-
 - GitHub 账户和仓库 (代码已推送)- GitHub 账户和仓库
 
-- PostgreSQL 数据库 (推荐 Supabase 或 Neon)- Deno Deploy 新版本账户（console.deno.com）
+- PostgreSQL 数据库 (推荐 Supabase 或 Neon)- Deno Deploy
+  新版本账户（console.deno.com）
 
 - Deno Deploy 账户- PostgreSQL 数据库（推荐 Supabase 或 Neon）
 
-
-
 ## ✨ 零配置自动部署特性## 🔧 步骤1: 设置 Deno Deploy 新版本
-
-
 
 - 🚀 **GitHub App 集成** - 无需手动配置令牌### 1.1 创建 Deno Deploy 账户
 
 - 📦 **自动框架检测** - 自动识别 Fresh 2 项目
 
-- 🔄 **实时构建日志** - 可视化构建过程1. 访问 [https://console.deno.com](https://console.deno.com) (**不是** dash.deno.com)
+- 🔄 **实时构建日志** - 可视化构建过程1. 访问
+  [https://console.deno.com](https://console.deno.com) (**不是** dash.deno.com)
 
 - 🌍 **全球 CDN 部署** - 自动边缘分发2. 点击 "Sign in with GitHub"
 
@@ -42,21 +37,18 @@
 
 1. 在 console.deno.com 创建新组织
 
-### 1.1 访问控制台2. 点击 "+ New App"，名称为 `sams-ai`  
+### 1.1 访问控制台2. 点击 "+ New App"，名称为 `sams-ai`
 
 3. 选择你的 GitHub 仓库
 
-1. 访问 [https://console.deno.com](https://console.deno.com)4. 框架自动检测为 **Fresh**
+4. 访问 [https://console.deno.com](https://console.deno.com)4. 框架自动检测为
+   **Fresh**
 
-2. 使用 GitHub 账户登录5. 构建配置自动设置 (无需手动配置)
+5. 使用 GitHub 账户登录5. 构建配置自动设置 (无需手动配置)
 
-3. 授权 Deno Deploy 访问你的 GitHub   ### 1.3 GitHub App 集成
-
-
+6. 授权 Deno Deploy 访问你的 GitHub ### 1.3 GitHub App 集成
 
 ### 1.2 创建组织和应用新版 Deno Deploy 使用 GitHub App 自动集成，**无需手动配置 token**：
-
-
 
 1. 创建新组织 (如果没有)1. 连接仓库时，Deno Deploy 会请求 GitHub App 权限
 
@@ -64,17 +56,14 @@
 
 3. 选择你的 GitHub 仓库 `sams-ai`3. 部署配置自动完成
 
-
-
 ### 1.3 自动配置验证## 🔑 步骤2: 配置环境变量
-
-
 
 Deno Deploy 会自动检测和配置：### 2.1 在 Deno Deploy 中设置环境变量
 
 - ✅ **Framework**: Fresh (自动检测)
 
-- ✅ **Build Command**: `deno task build` (自动配置)**新版 Deno Deploy** - 在应用设置中配置：
+- ✅ **Build Command**: `deno task build` (自动配置)**新版 Deno Deploy** -
+  在应用设置中配置：
 
 - ✅ **Entry Point**: `main.ts` (自动识别)
 
@@ -84,11 +73,10 @@ Deno Deploy 会自动检测和配置：### 2.1 在 Deno Deploy 中设置环境�
 
 ## 🔑 步骤 2: 配置环境变量3. 添加生产环境变量：
 
-   ```bash
-
+````bash
 在 Deno Deploy 应用设置中添加环境变量：   # 数据库配置
 
-   DATABASE_URL=postgresql://user:pass@host:port/db
+DATABASE_URL=postgresql://user:pass@host:port/db
 
 1. 进入应用控制台   DB_SSL=true
 
@@ -96,11 +84,11 @@ Deno Deploy 会自动检测和配置：### 2.1 在 Deno Deploy 中设置环境�
 
 3. 添加以下环境变量：   # 安全配置  
 
-   JWT_SECRET=your_production_jwt_secret_32_chars_long
+JWT_SECRET=your_production_jwt_secret_32_chars_long
 
 ### 必需的环境变量   
 
-   # 可选: Argon2 配置
+# 可选: Argon2 配置
 
 ```bash   ARGON2_MEMORY_COST=131072
 
@@ -109,15 +97,14 @@ Deno Deploy 会自动检测和配置：### 2.1 在 Deno Deploy 中设置环境�
 DATABASE_URL=postgresql://user:password@host:port/database?sslmode=require   ARGON2_PARALLELISM=4
 
 DB_SSL=true   ```
-
-   ```
+````
 
 # 安全配置7. 点击 "Create"
 
-JWT_SECRET=your_production_jwt_secret_32_chars_or_longer8. **重要**: 立即复制令牌（只显示一次）
+JWT_SECRET=your_production_jwt_secret_32_chars_or_longer8. **重要**:
+立即复制令牌（只显示一次）
 
-```
-
+````
 ### 1.3 创建项目
 
 ### 可选的性能配置
@@ -155,13 +142,11 @@ ARGON2_PARALLELISM=4         # 4 并行度   Deploy method: GitHub Actions
 3. 点击 "New repository secret"
 
 ### 推荐的数据库服务4. 添加Secret：
+````
 
-   ```
+#### Supabase (推荐) Name: DENO_DEPLOY_TOKEN
 
-#### Supabase (推荐)   Name: DENO_DEPLOY_TOKEN
-
-```bash   Secret: [粘贴步骤1.2中复制的令牌]
-
+````bash   Secret: [粘贴步骤1.2中复制的令牌]
 # 访问 https://supabase.com   ```
 
 # 创建新项目
@@ -187,8 +172,7 @@ DATABASE_URL=postgresql://postgres:[password]@db.[project-id].supabase.co:5432/p
 DATABASE_URL=postgresql://[username]:[password]@[endpoint]/[dbname]?sslmode=require# 新版 Deno Deploy 不需要:
 
 ```# DENO_DEPLOY_TOKEN (已废弃，使用 GitHub App)
-
-```
+````
 
 ### 初始化数据库
 
@@ -198,8 +182,7 @@ DATABASE_URL=postgresql://[username]:[password]@[endpoint]/[dbname]?sslmode=requ
 
 ### 3.1 创建PostgreSQL数据库
 
-```bash
-
+````bash
 # 本地连接生产数据库推荐的云PostgreSQL服务：
 
 psql $DATABASE_URL -f sql/schema.sql
@@ -257,15 +240,13 @@ DATABASE_URL=postgresql://username:password@host:port/database?sslmode=require
 ARGON2_PARALLELISM=1
 
 ## 🔍 步骤 5: 验证部署DENO_ENV=production
-
-```
+````
 
 ### 5.1 测试应用端点
 
 ## 🔐 步骤4: 生成安全密钥
 
-```bash
-
+````bash
 # 替换为你的实际部署 URL### 4.1 生成JWT Secret
 
 export DEPLOY_URL="https://your-app-name.deno.dev"
@@ -343,13 +324,12 @@ Error: Repository access denied  uses: denoland/deployctl@v1
 
 
 #### 2. 环境变量未生效### 5.2 自定义部署配置
+````
 
-```
+Error: DATABASE_URL is not defined如果需要修改部署配置，编辑
+`.github/workflows/deploy.yml`：
 
-Error: DATABASE_URL is not defined如果需要修改部署配置，编辑 `.github/workflows/deploy.yml`：
-
-```
-
+````
 **解决方案**:```yaml
 
 - 检查环境变量拼写# 修改部署触发条件
@@ -379,13 +359,11 @@ Error: Connection refused
         required: true
 
 #### 4. 构建失败        default: "production"
-
-``````
+````
 
 Error: Build process failed
 
-```## ✅ 步骤6: 验证部署
-
+````## ✅ 步骤6: 验证部署
 **解决方案**:
 
 - 检查 `deno.json` 配置### 6.1 触发部署
@@ -439,13 +417,11 @@ curl -f https://sams-ai-fresh2.deno.dev/signup
 3. **定期更新**: 保持依赖项更新#### 1. GitHub App 权限问题
 
 4. **访问审计**: 定期审查访问权限
-
-```
+````
 
 ### CI/CD 集成Error: Failed to access repository
 
 ```
-
 项目包含的 GitHub Actions 工作流会：
 
 - ✅ 自动运行测试**解决方案**:
@@ -463,16 +439,16 @@ Deno Deploy 会在构建成功后自动获取产物进行部署。
 #### 2. 构建配置问题
 
 ## 🔗 相关资源
-
 ```
 
-- [Deno Deploy 文档](https://docs.deno.com/deploy/)Error: Build failed - framework not detected
+- [Deno Deploy 文档](https://docs.deno.com/deploy/)Error: Build failed -
+  framework not detected
 
-- [Fresh 2 文档](https://fresh.deno.dev/)  ```
+- [Fresh 2 文档](https://fresh.deno.dev/) ```
 
 - [GitHub Actions 工作流](../.github/workflows/ci.yml)
 
-- [数据库模式](../sql/schema.sql)**解决方案**:
+- [数据库模式](../sql/schema.sql) **解决方案**:
 
 - [部署配置助手](../scripts/setup-deployment.ts)
 
@@ -488,8 +464,7 @@ Deno Deploy 会在构建成功后自动获取产物进行部署。
 
 你现在拥有一个完全自动化的 Fresh 2 应用部署流程！
 
-```
-
+````
 - 🚀 零配置自动部署Error: Failed to connect to database
 
 - 🌍 全球 CDN 分发  ```
@@ -506,11 +481,11 @@ Deno Deploy 会在构建成功后自动获取产物进行部署。
 - 验证SSL设置
 
 #### 4. 环境变量缺失
+````
 
-```
 Error: JWT_SECRET is not defined
-```
 
+````
 **解决方案**:
 
 - 在Deno Deploy项目中设置所有必需的环境变量
@@ -524,7 +499,7 @@ Error: JWT_SECRET is not defined
      run: |
        echo "Project: ${{ env.PROJECT_NAME }}"
        echo "Deno version: $(deno --version)"
-   ```
+````
 
 2. **测试本地构建**:
    ```bash

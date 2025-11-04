@@ -63,7 +63,7 @@ Actions实现全面的CI/CD流程，确保代码质量、测试覆盖率和安�
 
 2. **零配置自动部署**
    - ✅ 无需生成访问令牌
-   - ✅ 无需设置 GitHub Secrets  
+   - ✅ 无需设置 GitHub Secrets
    - ✅ 使用 GitHub App 自动集成
    - ✅ 推送代码自动触发部署
 
@@ -86,7 +86,7 @@ Actions实现全面的CI/CD流程，确保代码质量、测试覆盖率和安�
    - 入口点自动设置为 `main.ts`
    - 构建命令自动配置
 
-2. **配置项目环境变量** 在项目设置中添加以下环境变量：
+3. **配置项目环境变量** 在项目设置中添加以下环境变量：
    ```bash
    DATABASE_URL=your_production_database_url
    DB_SSL=true
@@ -99,6 +99,7 @@ Actions实现全面的CI/CD流程，确保代码质量、测试覆盖率和安�
 #### 📋 环境变量配置
 
 **Deno Deploy 环境变量** (在应用设置中配置):
+
 ```bash
 # 数据库配置
 DATABASE_URL=postgresql://username:password@host:port/database
@@ -114,6 +115,7 @@ ARGON2_PARALLELISM=1
 ```
 
 **无需 GitHub Secrets**:
+
 - ✅ 新版 Deno Deploy 使用 GitHub App 集成
 - ✅ 无需手动配置部署令牌
 - ✅ 环境变量直接在控制台配置

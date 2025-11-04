@@ -81,7 +81,7 @@ function printDeployGuide() {
   console.log("8. 配置生产环境变量");
   console.log("9. 享受自动部署！");
   console.log();
-  
+
   console.log(colorize("cyan", "✨ 优势:"));
   console.log("• 无需配置 GitHub Secrets");
   console.log("• 实时构建日志");
@@ -90,8 +90,6 @@ function printDeployGuide() {
   console.log("• 自动 HTTPS");
   console.log();
 }
-
-
 
 function generateSecrets() {
   printStep(2, "生成安全密钥");
@@ -172,8 +170,6 @@ function printDatabaseSetup() {
   console.log();
 }
 
-
-
 function printCompletion() {
   console.log("=".repeat(50));
   console.log(colorize("green", "🎉 配置指南完成!"));
@@ -189,15 +185,13 @@ function printCompletion() {
   console.log(colorize("yellow", "💡 提示: 确保所有密钥都保存在安全的地方!"));
 }
 
-
-
 async function main() {
   printInstructions();
-  
+
   printDeployGuide();
-  
+
   await promptUser("准备设置环境变量了吗？");
-  
+
   generateSecrets();
   printEnvironmentVariables();
   printDatabaseSetup();

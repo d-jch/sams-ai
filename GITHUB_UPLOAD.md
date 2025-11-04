@@ -57,13 +57,15 @@ git push -u origin main
 ### ✅ 新版 Deno Deploy - 零配置自动部署
 
 **GitHub App 集成优势**:
+
 - 🚀 无需手动配置 token 或密钥
-- 📦 推送到 GitHub 自动触发部署  
+- 📦 推送到 GitHub 自动触发部署
 - 🔍 实时构建日志和状态监控
 - 🌍 全球 CDN 自动分发
 - 🔄 预览部署支持分支和 PR
 
 **部署步骤**:
+
 1. 推送代码到 GitHub
 2. 访问 [console.deno.com](https://console.deno.com)
 3. 创建应用并连接仓库
