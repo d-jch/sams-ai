@@ -61,6 +61,7 @@ deno task db:migrate:force
 ```typescript
 // 在 lib/db.ts 的 initializeDatabase() 中
 if (env === "production" || AUTO_MIGRATE === "true") {
+  // ⚠️ 数据安全：迁移使用 "IF NOT EXISTS" 语句，不会删除现有数据
   await runMigrations(databaseUrl);
 }
 ```

@@ -3,31 +3,18 @@
 本项目配置为自动部署到 **Deno Deploy 新版本**（console.deno.com），使用 GitHub
 App 集成。
 
-## 🎯 部署方式选择
+## 🎯 部署方式
 
-### 方式1：GitHub App 集成（推荐）
+### GitHub App 集成
 
 - 自动检测 Fresh 2 项目
 - 无需配置 token，使用 GitHub App 认证
 - 支持预览部署和生产部署
 - 完全托管的构建过程
 
-### 方式2：GitHub Actions 部署
-
-- 使用现有的 CI/CD 流水线
-- 需要 `id-token: write` 权限
-- 支持自定义构建步骤
-
 ## 🚀 部署到 Deno Deploy
 
-> **重要说明**: Deno Deploy 分为两个版本，请选择适合的部署方式：
->
-> - **新版 Deno Deploy** (console.deno.com) - 推荐，功能更全面
-> - **Deploy Classic** (dash.deno.com) - 将逐步被新版替代
-
-### 新版 Deno Deploy (推荐)
-
-**自动 GitHub 集成部署** - 无需 deployctl
+### 自动 GitHub 集成部署
 
 1. 访问 [console.deno.com](https://console.deno.com)
 2. 创建新的组织和应用
@@ -38,18 +25,6 @@ App 集成。
    - 监听 Git push 自动部署
    - 提供构建状态通知
 
-### Deploy Classic 部署
-
-**手动 deployctl 部署** - 仅用于 Deploy Classic
-
-```bash
-# 安装 deployctl (仅 Deploy Classic)
-deno install -A --global jsr:@deno/deployctl
-
-# 部署到 Deploy Classic
-deployctl deploy --project=your-project-name main.ts
-```
-
 ## 🔄 部署流程
 
 ### 自动部署
@@ -58,13 +33,9 @@ deployctl deploy --project=your-project-name main.ts
 - **预览部署**: 创建 Pull Request 自动触发
 - **分支部署**: 推送到其他分支创建预览
 
-### 手动部署
+### 手动重新部署
 
-```bash
-# 使用 deployctl CLI
-deno install -A jsr:@deno/deployctl
-deployctl deploy --project=sams-ai main.ts
-```
+如需手动触发部署，推送新的 commit 到仓库即可自动触发构建和部署。
 
 ## 🏗️ 构建配置
 
@@ -160,11 +131,14 @@ deno task build
 #### 数据库连接问题
 
 ```bash
-# 测试连接
-deno run -A scripts/test-db.ts
+# 测试数据库连接和迁移
+deno task db:migrate
 
 # 检查环境变量
 echo $DATABASE_URL
+
+# 检查数据库表结构
+psql "$DATABASE_URL" -c "\dt"
 ```
 
 #### 权限错误
@@ -183,38 +157,26 @@ echo $DATABASE_URL
 
 ## CI/CD 集成说明
 
-### 部署方式对比
-
-**新版 Deno Deploy (当前配置)**:
-
-- ✅ GitHub App 自动集成
-- ✅ 无需 deployctl 配置
-- ✅ 自动构建和部署
-- ✅ 实时构建日志
-
-**Deploy Classic (旧版)**:
-
-- 🟠 需要 deployctl GitHub Action
-- 🟠 手动配置 token
-- 🟠 YAML 配置管理
-- 🟠 有限功能支持
-
 ### GitHub Actions 配置
 
-当前 CI 工作流适配新版 Deno Deploy：
+当前 CI 工作流配置：
 
 ```yaml
-# ✅ 正确配置 - 新版 Deno Deploy
+# GitHub App 集成自动部署
 deployment-ready:
   steps:
     - name: Download build artifacts
       uses: actions/download-artifact@v4
     - name: Deployment notification
       run: echo "Build ready for Deno Deploy GitHub App"
-
-# ❌ 错误配置 - 仅用于 Deploy Classic
-# - uses: denoland/deployctl@v1  # 不要使用
 ```
+
+**特性**:
+
+- ✅ GitHub App 自动集成
+- ✅ 无需 deployctl 配置
+- ✅ 自动构建和部署
+- ✅ 实时构建日志
 
 ## 🔗 相关链接
 
