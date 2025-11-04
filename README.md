@@ -254,15 +254,16 @@ psql -d sams_ai_auth -f sql/migrations/001_new_feature.sql
 ## 🚀 Production Deployment
 
 This project is configured for automatic deployment to **Deno Deploy** (new
-version) using GitHub integration.
+version) using GitHub App integration - **no deployctl required**.
 
 ### Quick Deploy Setup
 
 1. **Create Deno Deploy App**
-   - Visit [console.deno.com](https://console.deno.com)
+   - Visit [console.deno.com](https://console.deno.com) (not dash.deno.com)
    - Create organization and new app named `sams-ai`
-   - Connect to this GitHub repository
-   - Framework: **Fresh**, Build: `deno task build`, Entry: `main.ts`
+   - Connect to this GitHub repository via GitHub App
+   - Framework: **Fresh** (auto-detected), Entry: `main.ts`
+   - Build automatically configured
 
 2. **Configure Environment Variables**
    ```env

@@ -18,61 +18,35 @@ App 集成。
 - 需要 `id-token: write` 权限
 - 支持自定义构建步骤
 
-## 🚀 快速开始
+## 🚀 部署到 Deno Deploy
 
-### 1. 设置 Deno Deploy 项目
+> **重要说明**: Deno Deploy 分为两个版本，请选择适合的部署方式：
+> - **新版 Deno Deploy** (console.deno.com) - 推荐，功能更全面
+> - **Deploy Classic** (dash.deno.com) - 将逐步被新版替代
+
+### 新版 Deno Deploy (推荐)
+
+**自动 GitHub 集成部署** - 无需 deployctl
 
 1. 访问 [console.deno.com](https://console.deno.com)
-2. 创建组织（如果没有）
-3. 点击 "New App"
-4. 选择此 GitHub 仓库
-5. 配置如下：
-   - **Framework**: Fresh
-   - **Install command**: `deno install`
-   - **Build command**: `deno task build`
-   - **Entrypoint**: `main.ts`
+2. 创建新的组织和应用
+3. 连接你的 GitHub 仓库
+4. Deno Deploy 会：
+   - 自动检测 Fresh 2 框架
+   - 配置构建设置
+   - 监听 Git push 自动部署
+   - 提供构建状态通知
 
-### 2. 环境变量配置
+### Deploy Classic 部署
 
-在 Deno Deploy 控制台的应用设置中添加：
-
-```bash
-# 数据库配置
-DATABASE_URL=postgresql://user:password@host:port/database
-DB_SSL=true
-
-# JWT 配置  
-JWT_SECRET=your-secure-jwt-secret-at-least-32-chars
-
-# Argon2 配置（可选）
-ARGON2_MEMORY_COST=65536
-ARGON2_TIME_COST=3
-ARGON2_PARALLELISM=4
-
-# 应用环境
-DENO_ENV=production
-```
-
-### 3. 数据库准备
-
-推荐使用云数据库服务：
-
-#### Supabase
+**手动 deployctl 部署** - 仅用于 Deploy Classic
 
 ```bash
-# 1. 创建 Supabase 项目
-# 2. 获取连接字符串
-# 3. 运行迁移
-deno run -A scripts/migrate.ts
-```
+# 安装 deployctl (仅 Deploy Classic)
+deno install -A --global jsr:@deno/deployctl
 
-#### Neon
-
-```bash
-# 1. 创建 Neon 项目
-# 2. 获取连接字符串
-# 3. 运行迁移
-deno run -A scripts/migrate.ts
+# 部署到 Deploy Classic
+deployctl deploy --project=your-project-name main.ts
 ```
 
 ## 🔄 部署流程
@@ -205,6 +179,39 @@ echo $DATABASE_URL
 3. 比较环境变量配置
 4. 测试数据库连接
 5. 检查应用日志
+
+## CI/CD 集成说明
+
+### 部署方式对比
+
+**新版 Deno Deploy (当前配置)**:
+- ✅ GitHub App 自动集成
+- ✅ 无需 deployctl 配置
+- ✅ 自动构建和部署
+- ✅ 实时构建日志
+
+**Deploy Classic (旧版)**:
+- 🟠 需要 deployctl GitHub Action
+- 🟠 手动配置 token
+- 🟠 YAML 配置管理
+- 🟠 有限功能支持
+
+### GitHub Actions 配置
+
+当前 CI 工作流适配新版 Deno Deploy：
+
+```yaml
+# ✅ 正确配置 - 新版 Deno Deploy
+deployment-ready:
+  steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+    - name: Deployment notification
+      run: echo "Build ready for Deno Deploy GitHub App"
+
+# ❌ 错误配置 - 仅用于 Deploy Classic
+# - uses: denoland/deployctl@v1  # 不要使用
+```
 
 ## 🔗 相关链接
 

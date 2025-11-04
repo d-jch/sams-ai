@@ -316,60 +316,18 @@ jobs:
           fi
 
   deployment-ready:
-    name: 🚀 Deployment Ready
+    name: Deployment Ready
     runs-on: ubuntu-latest
-    needs: [test, build, security, e2e-test]
+    needs: [lint-and-format, test, build]
     if: github.ref == 'refs/heads/main'
-
-    environment:
-      name: production
-
-    permissions:
-      id-token: write # Needed for auth with Deno Deploy
-      contents: read # Needed to clone the repository
-
     steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🦕 Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: ${{ env.DENO_VERSION }}
-
-      - name: 📦 Download build artifacts
+      - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: fresh2-build-${{ github.sha }}
-          path: _fresh/
-
-      - name: ✅ Deployment readiness check
+          name: fresh-build
+          
+      - name: Deployment notification
         run: |
-          echo "🎉 All checks passed! Ready for deployment." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### ✅ Completed Checks:" >> $GITHUB_STEP_SUMMARY
-          echo "- Code quality (formatting, linting, type checking)" >> $GITHUB_STEP_SUMMARY
-          echo "- Unit tests (authentication, middleware)" >> $GITHUB_STEP_SUMMARY
-          echo "- Integration tests (routes, API endpoints)" >> $GITHUB_STEP_SUMMARY
-          echo "- Build process" >> $GITHUB_STEP_SUMMARY
-          echo "- Security audit" >> $GITHUB_STEP_SUMMARY
-          echo "- End-to-end tests" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "🚀 **Ready to deploy to production!**" >> $GITHUB_STEP_SUMMARY
-
-      - name: 🚀 Deploy to Deno Deploy
-        uses: denoland/deployctl@v1
-        with:
-          project: "sams-ai"
-          entrypoint: "main.ts"
-          root: "."
-
-      - name: 📋 Create deployment artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: deployment-ready-${{ github.sha }}
-          path: |
-            deno.json
-            main.ts
-            README.md
-          retention-days: 30
+          echo "🚀 Build artifacts ready for Deno Deploy"
+          echo "📦 Build will be automatically deployed via GitHub App integration"
+          echo "� Monitor deployment at: https://console.deno.com"
