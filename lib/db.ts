@@ -8,7 +8,10 @@ import type {
 } from "./types.ts";
 
 // 创建带有正确 TLS 配置的数据库连接池
-export function createDatabasePool(databaseUrl: string, maxConnections = 10): Pool {
+export function createDatabasePool(
+  databaseUrl: string,
+  maxConnections = 10,
+): Pool {
   // Support optional TLS/SSL configuration for databases that require encrypted connections
   // (e.g. AWS RDS). We accept DATABASE_URL as a connection string, and additional
   // TLS options can be supplied via environment variables:
@@ -16,8 +19,8 @@ export function createDatabasePool(databaseUrl: string, maxConnections = 10): Po
   // - DB_SSL_REJECT_UNAUTHORIZED=true|false (whether to verify server cert)
   // - DB_SSL_CA_PATH=/path/to/ca.pem (optional path to CA cert file)
 
-  const useTlsEnv =
-    (Deno.env.get("DB_SSL") || Deno.env.get("PGSSLMODE") || "").toLowerCase();
+  const useTlsEnv = (Deno.env.get("DB_SSL") || Deno.env.get("PGSSLMODE") || "")
+    .toLowerCase();
   const useTls = useTlsEnv === "true" || useTlsEnv === "require" ||
     databaseUrl.includes("rds.amazonaws.com");
 
