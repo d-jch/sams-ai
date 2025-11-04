@@ -13,7 +13,9 @@
     "test:middleware": "deno test -A --filter middleware",
     "test:routes": "deno test -A --filter routes",
     "test:api": "deno test -A --filter api",
-    "setup:deployment": "deno run -A scripts/setup-deployment.ts"
+    "setup:deployment": "deno run -A scripts/setup-deployment.ts",
+    "db:migrate": "deno run -A scripts/migrate.ts",
+    "db:migrate:force": "deno run -A scripts/migrate.ts --force=true"
   },
   "lint": {
     "rules": {

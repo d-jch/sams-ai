@@ -305,6 +305,49 @@ export async function initializeDatabase(): Promise<void> {
   const database = getDatabase();
   await database.connect();
 
+  // 自动运行数据库迁移（仅在生产环境）
+  const databaseUrl = Deno.env.get("DATABASE_URL");
+  if (databaseUrl) {
+    const env = Deno.env.get("DENO_ENV") || Deno.env.get("APP_ENV") ||
+      "development";
+
+    // 在生产环境或显式启用时运行自动迁移
+    const autoMigrate = Deno.env.get("AUTO_MIGRATE") === "true" ||
+      env === "production";
+
+    if (autoMigrate) {
+      try {
+        console.log("🔄 Running automatic database migration...");
+
+        // 动态导入迁移工具
+        const { runMigrations, checkTablesExist } = await import(
+          "./migrate.ts"
+        );
+
+        // 检查表是否已存在
+        const tablesExist = await checkTablesExist(databaseUrl);
+
+        if (!tablesExist) {
+          console.log("📋 Tables not found, running initial migration...");
+          await runMigrations(databaseUrl);
+        } else {
+          console.log("✅ Database tables already exist, skipping migration");
+        }
+      } catch (migrationError) {
+        console.error("❌ Auto-migration failed:", migrationError);
+        console.warn(
+          "💡 You can disable auto-migration by setting AUTO_MIGRATE=false",
+        );
+        console.warn("💡 Or run migration manually: deno task db:migrate");
+
+        // 在开发环境中不要因为迁移失败而停止应用
+        if (env === "production") {
+          throw migrationError;
+        }
+      }
+    }
+  }
+
   // Clean up inactive sessions on startup (older than 10 days)
   const cutoffTime = new Date(Date.now() - (10 * 24 * 60 * 60 * 1000)); // 10 days
   try {
@@ -331,16 +374,10 @@ export async function initializeDatabase(): Promise<void> {
         "❌ Database cleanup skipped: the 'sessions' table does not exist.",
       );
       console.warn(
-        "   To create required tables, apply the SQL schema located at: sql/schema.sql",
+        "   Tables should have been created by auto-migration. If disabled:",
       );
-      console.warn("   Example (psql):");
-      console.warn('     psql "$DATABASE_URL" -f sql/schema.sql');
-      console.warn(
-        "   Or connect with your usual Postgres client and run the file contents.",
-      );
-      console.warn(
-        "   If you're using TLS/CA for the DB, ensure DB_SSL and DB_SSL_CA_PATH are set when running the command.",
-      );
+      console.warn("   Run: deno task db:migrate");
+      console.warn("   Or manually apply: sql/schema.sql");
     } else {
       // Unknown error — rethrow so it surfaces during initialization
       console.error("Failed to initialize database:", err);

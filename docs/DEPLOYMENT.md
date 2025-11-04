@@ -73,31 +73,36 @@ Deno Deploy 会自动检测和配置：### 2.1 在 Deno Deploy 中设置环境�
 
 ## 🔑 步骤 2: 配置环境变量3. 添加生产环境变量：
 
-````bash
-在 Deno Deploy 应用设置中添加环境变量：   # 数据库配置
+在 Deno Deploy 应用设置中添加环境变量：
 
-DATABASE_URL=postgresql://user:pass@host:port/db
+1. 进入应用控制台
+2. 点击 **"Settings"** → **"Environment Variables"**
+3. 添加以下环境变量：
 
-1. 进入应用控制台   DB_SSL=true
+### 🗃️ 必需的环境变量
 
-2. 点击 **"Settings"** → **"Environment Variables"**   
+```bash
+# 数据库配置
+DATABASE_URL=postgresql://user:password@host:port/database?sslmode=require
+DB_SSL=true
 
-3. 添加以下环境变量：   # 安全配置  
+# 自动数据库迁移（推荐启用）
+AUTO_MIGRATE=true
 
+# 应用环境
+DENO_ENV=production
+
+# 安全配置  
 JWT_SECRET=your_production_jwt_secret_32_chars_long
 
-### 必需的环境变量   
-
 # 可选: Argon2 配置
+ARGON2_MEMORY_COST=131072
+ARGON2_TIME_COST=4
+ARGON2_PARALLELISM=4
+```
 
-```bash   ARGON2_MEMORY_COST=131072
-
-# 数据库配置   ARGON2_TIME_COST=4
-
-DATABASE_URL=postgresql://user:password@host:port/database?sslmode=require   ARGON2_PARALLELISM=4
-
-DB_SSL=true   ```
-````
+⚠️ **重要**：设置 `AUTO_MIGRATE=true`
+将在部署时自动创建数据库表。如果你的数据库已有数据，请先手动运行迁移测试。
 
 # 安全配置7. 点击 "Create"
 
@@ -178,22 +183,46 @@ DATABASE_URL=postgresql://[username]:[password]@[endpoint]/[dbname]?sslmode=requ
 
 ## 🗄️ 步骤3: 配置生产数据库
 
-使用提供的 SQL 模式初始化数据库：
-
 ### 3.1 创建PostgreSQL数据库
 
-````bash
-# 本地连接生产数据库推荐的云PostgreSQL服务：
+推荐的云PostgreSQL服务：
 
-psql $DATABASE_URL -f sql/schema.sql
-
-```- **Neon** (免费层): https://neon.tech
-
+- **Neon** (免费层): https://neon.tech
 - **Supabase** (免费层): https://supabase.com
-
-或者在数据库控制台中直接执行 `sql/schema.sql` 文件的内容。- **Railway** (付费): https://railway.app
-
+- **Railway** (付费): https://railway.app
 - **AWS RDS**: https://aws.amazon.com/rds/
+
+### 3.2 数据库迁移配置
+
+**🚀 自动迁移（推荐）**
+
+如果你在步骤2中设置了
+`AUTO_MIGRATE=true`，数据库表将在部署时自动创建。无需手动操作！
+
+**📋 手动迁移**
+
+如果需要手动运行迁移：
+
+```bash
+# 本地连接生产数据库
+export DATABASE_URL="postgresql://user:password@host:port/database"
+
+# 运行迁移脚本
+deno task db:migrate
+
+# 或使用psql直接执行
+psql $DATABASE_URL -f sql/schema.sql
+```
+
+**📚 详细迁移指南**
+
+查看 [docs/DATABASE_MIGRATION.md](./DATABASE_MIGRATION.md)
+获取完整的数据库迁移指南，包括：
+
+- 自动迁移配置
+- 手动迁移步骤
+- 故障排除指南
+- AWS RDS特殊配置
 
 ## 🚀 步骤 4: 部署应用
 
@@ -207,23 +236,18 @@ psql $DATABASE_URL -f sql/schema.sql
 
 - 推送到 `main` 分支 → **生产部署**```
 
-- 推送到其他分支 → **预览部署**  postgresql://username:password@host:port/database?sslmode=require
+- 推送到其他分支 → **预览部署**
+  postgresql://username:password@host:port/database?sslmode=require
 
 - 创建 Pull Request → **PR 预览**```
 
-
-
 ### 4.2 监控部署状态### 3.3 在Deno Deploy中设置环境变量
-
-
 
 1. 在 Deno Deploy 控制台查看构建日志1. 进入你的Deno Deploy项目
 
 2. 构建成功后获得部署 URL2. 点击 "Settings" → "Environment Variables"
 
 3. 检查应用健康状态3. 添加以下变量：
-
-
 
 ### 4.3 自定义域名 (可选)```bash
 
@@ -240,8 +264,8 @@ DATABASE_URL=postgresql://username:password@host:port/database?sslmode=require
 ARGON2_PARALLELISM=1
 
 ## 🔍 步骤 5: 验证部署DENO_ENV=production
-````
 
+`````
 ### 5.1 测试应用端点
 
 ## 🔐 步骤4: 生成安全密钥
@@ -324,7 +348,7 @@ Error: Repository access denied  uses: denoland/deployctl@v1
 
 
 #### 2. 环境变量未生效### 5.2 自定义部署配置
-````
+`````
 
 Error: DATABASE_URL is not defined如果需要修改部署配置，编辑
 `.github/workflows/deploy.yml`：

@@ -1,11 +1,24 @@
 #!/usr/bin/env -S deno run --allow-read --allow-net --allow-env
-// Simple Deno migration runner for sql/schema.sql
-// Usage:
-//   DATABASE_URL='postgresql://user:pass@host:5432/db' deno run --allow-read --allow-net --allow-env scripts/migrate.ts
-// Or with flags:
-//   deno run --allow-read --allow-net --allow-env scripts/migrate.ts --file=sql/schema.sql --database-url='postgresql://...'
+/**
+ * 命令行数据库迁移工具
+ *
+ * 用法:
+ *   DATABASE_URL='postgresql://user:pass@host:5432/db' deno task db:migrate
+ * 或者:
+ *   deno run -A scripts/migrate.ts --database-url='postgresql://...'
+ *
+ * 功能:
+ *   - 检查数据库连接
+ *   - 检查表是否存在
+ *   - 运行迁移（如果需要）
+ *   - 验证迁移结果
+ */
 
-import { Pool } from "@db/postgres";
+import {
+  checkDatabaseConnection,
+  checkTablesExist,
+  runMigrations,
+} from "../lib/migrate.ts";
 
 function parseArgs() {
   const out: Record<string, string> = {};
@@ -17,39 +30,76 @@ function parseArgs() {
   return out;
 }
 
-const args = parseArgs();
-const filePath = args.file || "sql/schema.sql";
-const databaseUrl = args["database-url"] || Deno.env.get("DATABASE_URL");
+async function main() {
+  console.log("🗄️ Database Migration Tool");
+  console.log("==========================");
 
-if (!databaseUrl) {
-  console.error(
-    "DATABASE_URL not provided. Set env var DATABASE_URL or pass --database-url='",
-  );
-  Deno.exit(2);
+  const args = parseArgs();
+  const databaseUrl = args["database-url"] || Deno.env.get("DATABASE_URL");
+  const force = args["force"] === "true" ||
+    Deno.env.get("FORCE_MIGRATE") === "true";
+
+  if (!databaseUrl) {
+    console.error("❌ DATABASE_URL not provided.");
+    console.error(
+      "   Set environment variable DATABASE_URL or use --database-url flag",
+    );
+    console.error("   Example:");
+    console.error(
+      '     DATABASE_URL="postgresql://user:pass@host:5432/db" deno task db:migrate',
+    );
+    Deno.exit(1);
+  }
+
+  try {
+    // Step 1: 检查数据库连接
+    console.log("🔍 Checking database connection...");
+    const connectionOk = await checkDatabaseConnection(databaseUrl);
+    if (!connectionOk) {
+      console.error("❌ Failed to connect to database");
+      Deno.exit(1);
+    }
+
+    // Step 2: 检查表是否存在
+    console.log("📋 Checking if tables exist...");
+    const tablesExist = await checkTablesExist(databaseUrl);
+
+    if (tablesExist && !force) {
+      console.log("✅ Tables already exist. Migration not needed.");
+      console.log("   Use --force=true to run migration anyway");
+      return;
+    }
+
+    if (tablesExist && force) {
+      console.log("⚠️  Tables exist but force migration requested...");
+    }
+
+    // Step 3: 运行迁移
+    console.log("🚀 Running database migration...");
+    await runMigrations(databaseUrl);
+
+    // Step 4: 验证结果
+    console.log("🔍 Verifying migration results...");
+    const newTablesExist = await checkTablesExist(databaseUrl);
+    if (newTablesExist) {
+      console.log("✅ Migration completed successfully!");
+      console.log("   Tables created: users, sessions");
+    } else {
+      console.error("❌ Migration may have failed - tables not found");
+      Deno.exit(1);
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("❌ Migration failed:", errorMessage);
+    console.error("\n💡 Troubleshooting tips:");
+    console.error("   1. Check DATABASE_URL format");
+    console.error("   2. Verify database permissions (CREATE table rights)");
+    console.error("   3. Ensure database server is running");
+    console.error("   4. Check network connectivity");
+    Deno.exit(1);
+  }
 }
 
-try {
-  const sql = await Deno.readTextFile(filePath);
-
-  console.log(`Connecting to database and applying schema from ${filePath}...`);
-  const pool = new Pool(databaseUrl, 2, true);
-
-  const client = await pool.connect();
-  try {
-    // Some SQL files contain multiple statements; many drivers accept a single batch execution.
-    // If the driver rejects multi-statement execution, you can split on /;\s*$/ and run sequentially.
-    await client.queryObject(sql);
-    console.log("✅ Migration applied successfully.");
-  } finally {
-    // Release the client back to the pool
-    try {
-      client.release();
-    } catch (_e) {
-      // ignore release errors
-    }
-    await pool.end();
-  }
-} catch (err) {
-  console.error("Migration failed:", err);
-  Deno.exit(1);
+if (import.meta.main) {
+  await main();
 }
