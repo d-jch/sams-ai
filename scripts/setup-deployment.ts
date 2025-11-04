@@ -1,8 +1,9 @@
 #!/usr/bin/env -S deno run -A
 /**
- * 🚀 Fresh 2 部署配置助手
+ * 🚀 Fresh 2 新版 Deno Deploy 部署指南
  *
- * 这个脚本帮助你快速配置CI/CD部署所需的密钥和环境变量
+ * 新版 Deno Deploy 使用 GitHub App 集成，无需复杂配置！
+ * 这个脚本提供快速部署指南和环境变量生成。
  *
  * 使用方法:
  *   deno run -A scripts/setup-deployment.ts
@@ -25,8 +26,12 @@ function colorize(color: keyof typeof COLORS, text: string): string {
 }
 
 function printHeader() {
-  console.log(colorize("cyan", "🚀 Fresh 2 部署配置助手"));
-  console.log("=".repeat(50));
+  console.log(colorize("cyan", "🚀 Fresh 2 新版 Deno Deploy 部署指南"));
+  console.log("=".repeat(60));
+  console.log();
+  console.log(colorize("green", "✨ 零配置自动部署！"));
+  console.log("新版 Deno Deploy 使用 GitHub App 集成，无需手动配置 token");
+  console.log("推送代码到 GitHub 即可自动部署到全球 CDN");
   console.log();
 }
 
@@ -61,44 +66,35 @@ function printInstructions() {
   console.log();
 }
 
-async function setupDenoDeployToken() {
-  printStep(1, "设置Deno Deploy访问令牌");
+function printDeployGuide() {
+  printStep(1, "新版 Deno Deploy 快速部署");
 
-  console.log(
-    "1. 访问 " +
-      colorize("cyan", "https://dash.deno.com/account#access-tokens"),
-  );
-  console.log("2. 点击 'New Access Token'");
-  console.log("3. 描述: " + colorize("yellow", "sams-ai-github-actions"));
-  console.log("4. 权限: " + colorize("yellow", "All projects"));
-  console.log("5. 复制生成的令牌");
+  console.log(colorize("green", "🚀 零配置自动部署流程:"));
   console.log();
-
-  await promptUser("完成Deno Deploy令牌创建后");
-
-  console.log(colorize("green", "✅ 接下来在GitHub仓库中设置Secret:"));
-  console.log("• 进入 Settings → Secrets and variables → Actions");
-  console.log("• 新建Secret:");
-  console.log(colorize("cyan", "  Name: DENO_DEPLOY_TOKEN"));
-  console.log(colorize("cyan", "  Secret: [粘贴你的令牌]"));
+  console.log("1. 推送代码到 GitHub");
+  console.log("2. 访问 " + colorize("cyan", "https://console.deno.com"));
+  console.log("3. 创建组织 (Organization)");
+  console.log("4. 创建新应用 (New App)");
+  console.log("5. 连接 GitHub 仓库");
+  console.log("6. 框架自动检测为 " + colorize("yellow", "Fresh"));
+  console.log("7. 入口点自动设置为 " + colorize("yellow", "main.ts"));
+  console.log("8. 配置生产环境变量");
+  console.log("9. 享受自动部署！");
+  console.log();
+  
+  console.log(colorize("cyan", "✨ 优势:"));
+  console.log("• 无需配置 GitHub Secrets");
+  console.log("• 实时构建日志");
+  console.log("• 预览部署支持");
+  console.log("• 全球 CDN 分发");
+  console.log("• 自动 HTTPS");
   console.log();
 }
 
-async function setupDenoDeployProject() {
-  printStep(2, "创建Deno Deploy项目");
 
-  console.log("1. 访问 " + colorize("cyan", "https://dash.deno.com/projects"));
-  console.log("2. 点击 'New Project'");
-  console.log("3. 项目名称: " + colorize("yellow", "sams-ai-fresh2"));
-  console.log("4. 部署方式: " + colorize("yellow", "GitHub Actions"));
-  console.log("5. 点击 'Create Project'");
-  console.log();
-
-  await promptUser("完成Deno Deploy项目创建后");
-}
 
 function generateSecrets() {
-  printStep(3, "生成安全密钥");
+  printStep(2, "生成安全密钥");
 
   const jwtSecret = generateSecureSecret(32);
 
@@ -114,7 +110,7 @@ function generateSecrets() {
 }
 
 function printEnvironmentVariables() {
-  printStep(4, "配置Deno Deploy环境变量");
+  printStep(3, "配置 Deno Deploy 环境变量");
 
   console.log("在你的Deno Deploy项目中设置以下环境变量:");
   console.log("(Settings → Environment Variables)");
@@ -152,7 +148,7 @@ function printEnvironmentVariables() {
 }
 
 function printDatabaseSetup() {
-  printStep(5, "设置生产数据库");
+  printStep(4, "数据库设置");
 
   console.log("推荐的PostgreSQL云服务:");
   console.log("• " + colorize("cyan", "Neon") + " (免费层): https://neon.tech");
@@ -176,25 +172,7 @@ function printDatabaseSetup() {
   console.log();
 }
 
-function printTestingInstructions() {
-  printStep(6, "测试部署");
 
-  console.log("配置完成后，测试部署:");
-  console.log("1. 推送代码到main分支");
-  console.log("2. 检查GitHub Actions执行情况");
-  console.log("3. 访问你的Deno Deploy应用");
-  console.log();
-
-  console.log("测试命令:");
-  console.log(colorize("cyan", "curl -f https://sams-ai-fresh2.deno.dev/"));
-  console.log(
-    colorize("cyan", "curl -f https://sams-ai-fresh2.deno.dev/login"),
-  );
-  console.log(
-    colorize("cyan", "curl -f https://sams-ai-fresh2.deno.dev/signup"),
-  );
-  console.log();
-}
 
 function printCompletion() {
   console.log("=".repeat(50));
@@ -211,16 +189,18 @@ function printCompletion() {
   console.log(colorize("yellow", "💡 提示: 确保所有密钥都保存在安全的地方!"));
 }
 
+
+
 async function main() {
   printInstructions();
-  await promptUser("准备好开始配置了吗？");
-
-  await setupDenoDeployToken();
-  await setupDenoDeployProject();
+  
+  printDeployGuide();
+  
+  await promptUser("准备设置环境变量了吗？");
+  
   generateSecrets();
   printEnvironmentVariables();
   printDatabaseSetup();
-  printTestingInstructions();
   printCompletion();
 }
 

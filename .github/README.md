@@ -55,34 +55,36 @@ Actions实现全面的CI/CD流程，确保代码质量、测试覆盖率和安�
 
 ### 必需的GitHub Secrets
 
-#### 🔑 设置 Deno Deploy 集成
+#### 🔑 设置新版 Deno Deploy 集成
 
-1. **创建Deno Deploy应用（新版本）**
+1. **创建 Deno Deploy 应用**
    - 访问 [console.deno.com](https://console.deno.com)
-   - 使用GitHub账户登录
+   - 使用 GitHub 账户登录
 
-2. **生成访问令牌**
-   - 进入 [Account Settings](https://dash.deno.com/account#access-tokens)
-   - 点击 "New Access Token"
-   - 输入描述（如：`sams-ai-github-actions`）
-   - 选择权限：`All projects` 或特定项目权限
-   - 复制生成的令牌（只显示一次！）
+2. **零配置自动部署**
+   - ✅ 无需生成访问令牌
+   - ✅ 无需设置 GitHub Secrets  
+   - ✅ 使用 GitHub App 自动集成
+   - ✅ 推送代码自动触发部署
 
-3. **在GitHub中设置Secret**
-   - 进入你的GitHub仓库
-   - 点击 `Settings` → `Secrets and variables` → `Actions`
-   - 点击 `New repository secret`
-   - 不再需要 `DENO_DEPLOY_TOKEN`（使用 GitHub App 集成）
-   - Secret: 粘贴刚才复制的令牌
-   - 点击 `Add secret`
+3. **快速部署流程**
+   - 创建组织和新应用
+   - 连接 GitHub 仓库
+   - 框架自动检测为 Fresh
+   - 配置环境变量即可完成
 
-#### 🚀 创建Deno Deploy项目
+#### 🚀 创建 Deno Deploy 应用
 
-1. **在Deno Deploy中创建项目**
-   - 访问 [Deno Deploy Dashboard](https://dash.deno.com/projects)
-   - 点击 "New Project"
-   - 项目名称：`sams-ai-fresh2`（与workflow中的配置一致）
-   - 选择部署方式：`GitHub Actions`
+1. **访问控制台**
+   - 访问 [console.deno.com](https://console.deno.com)
+   - 创建组织
+   - 点击 "New App"
+
+2. **连接仓库**
+   - 选择 GitHub 仓库
+   - 框架自动检测为 **Fresh**
+   - 入口点自动设置为 `main.ts`
+   - 构建命令自动配置
 
 2. **配置项目环境变量** 在项目设置中添加以下环境变量：
    ```bash
@@ -94,20 +96,27 @@ Actions实现全面的CI/CD流程，确保代码质量、测试覆盖率和安�
    ARGON2_PARALLELISM=1
    ```
 
-#### 📋 完整的GitHub Secrets列表
+#### 📋 环境变量配置
 
+**Deno Deploy 环境变量** (在应用设置中配置):
 ```bash
-# 必需：部署相关
-DENO_DEPLOY_TOKEN=deno_deploy_access_token_here
-
-# 生产环境（在Deno Deploy项目中设置，不是GitHub Secrets）
+# 数据库配置
 DATABASE_URL=postgresql://username:password@host:port/database
+DB_SSL=true
+
+# 安全配置
 JWT_SECRET=your_production_jwt_secret_32_chars_long
 
-# 可选：其他平台部署
-RAILWAY_TOKEN=your_railway_token
-FLY_API_TOKEN=your_fly_token
+# 性能配置 (可选)
+ARGON2_MEMORY_COST=65536
+ARGON2_TIME_COST=3
+ARGON2_PARALLELISM=1
 ```
+
+**无需 GitHub Secrets**:
+- ✅ 新版 Deno Deploy 使用 GitHub App 集成
+- ✅ 无需手动配置部署令牌
+- ✅ 环境变量直接在控制台配置
 
 ### 环境变量（CI中自动设置）
 

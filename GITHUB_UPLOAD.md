@@ -52,20 +52,23 @@ git push -u origin main
 - ✅ GitHub Actions 工作流文件存在
 - ✅ 完整的项目结构
 
-## 🔧 配置 CI/CD (可选，用于自动部署)
+## 🔧 配置 Deno Deploy (自动集成)
 
-### 如果要启用自动部署：
+### ✅ 新版 Deno Deploy - 零配置自动部署
 
-1. **设置 Deno Deploy Token**
-   ```bash
-   # 运行配置助手
-   deno task setup:deployment
-   ```
+**GitHub App 集成优势**:
+- 🚀 无需手动配置 token 或密钥
+- 📦 推送到 GitHub 自动触发部署  
+- 🔍 实时构建日志和状态监控
+- 🌍 全球 CDN 自动分发
+- 🔄 预览部署支持分支和 PR
 
-2. **或手动配置**：
-   - 创建 Deno Deploy 账户和项目
-   - 设置 GitHub Secret: `DENO_DEPLOY_TOKEN`
-   - 配置环境变量
+**部署步骤**:
+1. 推送代码到 GitHub
+2. 访问 [console.deno.com](https://console.deno.com)
+3. 创建应用并连接仓库
+4. 配置环境变量
+5. 享受自动部署！
 
 ## 📊 项目统计
 
@@ -87,7 +90,7 @@ git push -u origin main
    - 查看工作流执行情况
 
 2. **设置自动部署**
-   - 配置 Deno Deploy Token
+   - 连接 GitHub App (新版 Deno Deploy)
    - 设置生产环境变量
 
 3. **邀请协作者**

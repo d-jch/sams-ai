@@ -324,7 +324,7 @@ jobs:
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: fresh-build
+          name: fresh2-build-${{ github.sha }}
 
       - name: Deployment notification
         run: |
