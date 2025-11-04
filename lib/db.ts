@@ -319,8 +319,9 @@ export async function initializeDatabase(): Promise<void> {
     
     // 在生产环境或显式启用时运行自动迁移
     const autoMigrate = autoMigrateEnv === "true" || isProduction;
+    const forceMode = Deno.env.get("AUTO_MIGRATE_FORCE") === "true";
     
-    console.log(`🤖 Auto-migration ${autoMigrate ? "ENABLED" : "DISABLED"} (production: ${isProduction}, explicit: ${autoMigrateEnv === "true"})`);
+    console.log(`🤖 Auto-migration ${autoMigrate ? "ENABLED" : "DISABLED"} (production: ${isProduction}, explicit: ${autoMigrateEnv === "true"}, force: ${forceMode})`);
 
     if (autoMigrate) {
       try {
@@ -332,13 +333,21 @@ export async function initializeDatabase(): Promise<void> {
         );
 
         // 检查表是否已存在
+        console.log("📋 Checking if database tables exist...");
         const tablesExist = await checkTablesExist(databaseUrl);
 
-        if (!tablesExist) {
-          console.log("📋 Tables not found, running initial migration...");
+        if (!tablesExist || forceMode) {
+          if (!tablesExist) {
+            console.log("🏗️ Tables not found, running initial migration...");
+          } else if (forceMode) {
+            console.log("🔄 Force mode enabled, running migration anyway...");
+          }
           await runMigrations(databaseUrl);
+          console.log("✅ Database migration completed successfully");
         } else {
           console.log("✅ Database tables already exist, skipping migration");
+          console.log("💡 If you need to update schema, run: deno task db:migrate --force");
+          console.log("💡 Or set AUTO_MIGRATE_FORCE=true to force migration on deploy");
         }
       } catch (migrationError) {
         console.error("❌ Auto-migration failed:", migrationError);
