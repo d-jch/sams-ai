@@ -307,15 +307,20 @@ export async function initializeDatabase(): Promise<void> {
   const database = getDatabase();
   await database.connect();
 
-  // 自动运行数据库迁移（仅在生产环境）
+  // 自动运行数据库迁移
   const databaseUrl = Deno.env.get("DATABASE_URL");
   if (databaseUrl) {
-    const env = Deno.env.get("DENO_ENV") || Deno.env.get("APP_ENV") ||
-      "development";
-
+    const env = Deno.env.get("DENO_ENV") || Deno.env.get("APP_ENV") || "development";
+    const autoMigrateEnv = Deno.env.get("AUTO_MIGRATE");
+    const isProduction = env === "production";
+    
+    // 详细的环境变量调试日志
+    console.log(`🔍 Migration check - ENV: ${env}, AUTO_MIGRATE: ${autoMigrateEnv}`);
+    
     // 在生产环境或显式启用时运行自动迁移
-    const autoMigrate = Deno.env.get("AUTO_MIGRATE") === "true" ||
-      env === "production";
+    const autoMigrate = autoMigrateEnv === "true" || isProduction;
+    
+    console.log(`🤖 Auto-migration ${autoMigrate ? "ENABLED" : "DISABLED"} (production: ${isProduction}, explicit: ${autoMigrateEnv === "true"})`);
 
     if (autoMigrate) {
       try {
