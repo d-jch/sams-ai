@@ -7,83 +7,82 @@ import type {
   UserRow,
 } from "./types.ts";
 
+// 创建带有正确 TLS 配置的数据库连接池
+export function createDatabasePool(databaseUrl: string, maxConnections = 10): Pool {
+  // Support optional TLS/SSL configuration for databases that require encrypted connections
+  // (e.g. AWS RDS). We accept DATABASE_URL as a connection string, and additional
+  // TLS options can be supplied via environment variables:
+  // - DB_SSL=true|false (enable TLS)
+  // - DB_SSL_REJECT_UNAUTHORIZED=true|false (whether to verify server cert)
+  // - DB_SSL_CA_PATH=/path/to/ca.pem (optional path to CA cert file)
+
+  const useTlsEnv =
+    (Deno.env.get("DB_SSL") || Deno.env.get("PGSSLMODE") || "").toLowerCase();
+  const useTls = useTlsEnv === "true" || useTlsEnv === "require" ||
+    databaseUrl.includes("rds.amazonaws.com");
+
+  if (!useTls) {
+    // No TLS requested — pass connection string directly
+    return new Pool(databaseUrl, maxConnections, true); // lazy connect
+  }
+
+  // Parse connection string and build config object with TLS options
+  const url = new URL(databaseUrl);
+  const user = decodeURIComponent(url.username || "");
+  const password = decodeURIComponent(url.password || "");
+  const hostname = url.hostname;
+  const port = url.port ? Number(url.port) : 5432;
+  const database = url.pathname && url.pathname !== "/"
+    ? url.pathname.slice(1)
+    : undefined;
+
+  // TLS options
+  const rejectUnauthorizedEnv =
+    (Deno.env.get("DB_SSL_REJECT_UNAUTHORIZED") || "true").toLowerCase();
+  const rejectUnauthorized = rejectUnauthorizedEnv !== "false";
+
+  // Optional CA certificate (path)
+  let caCert: string | undefined = undefined;
+  const caPath = Deno.env.get("DB_SSL_CA_PATH");
+  if (caPath) {
+    try {
+      caCert = Deno.readTextFileSync(caPath);
+    } catch (e) {
+      console.warn("Could not read DB SSL CA file at", caPath, e);
+    }
+  }
+
+  // Build connection config object compatible with @db/postgres Pool
+  const config: Record<string, unknown> = {
+    user: user || undefined,
+    password: password || undefined,
+    hostname,
+    port,
+    database,
+  };
+
+  // Attach TLS configuration
+  const tlsObj: Record<string, unknown> = {
+    enabled: true,
+    rejectUnauthorized,
+  };
+  if (caCert) {
+    tlsObj.caCertificates = [caCert];
+  }
+  config.tls = tlsObj;
+
+  return new Pool(
+    config as unknown as Record<string, unknown>,
+    maxConnections,
+    true,
+  );
+}
+
 class Database {
   private pool: Pool;
 
   constructor(databaseUrl: string) {
-    // Support optional TLS/SSL configuration for databases that require encrypted connections
-    // (e.g. AWS RDS). We accept DATABASE_URL as a connection string, and additional
-    // TLS options can be supplied via environment variables:
-    // - DB_SSL=true|false (enable TLS)
-    // - DB_SSL_REJECT_UNAUTHORIZED=true|false (whether to verify server cert)
-    // - DB_SSL_CA_PATH=/path/to/ca.pem (optional path to CA cert file)
-
-    const useTlsEnv =
-      (Deno.env.get("DB_SSL") || Deno.env.get("PGSSLMODE") || "").toLowerCase();
-    const useTls = useTlsEnv === "true" || useTlsEnv === "require" ||
-      databaseUrl.includes("rds.amazonaws.com");
-
-    if (!useTls) {
-      // No TLS requested — pass connection string directly
-      this.pool = new Pool(databaseUrl, 10, true); // 10 connections, lazy connect
-      return;
-    }
-
-    // Parse connection string and build config object with TLS options
-    const url = new URL(databaseUrl);
-    const user = decodeURIComponent(url.username || "");
-    const password = decodeURIComponent(url.password || "");
-    const hostname = url.hostname;
-    const port = url.port ? Number(url.port) : 5432;
-    const database = url.pathname && url.pathname !== "/"
-      ? url.pathname.slice(1)
-      : undefined;
-
-    // TLS options
-    const rejectUnauthorizedEnv =
-      (Deno.env.get("DB_SSL_REJECT_UNAUTHORIZED") || "true").toLowerCase();
-    const rejectUnauthorized = rejectUnauthorizedEnv !== "false";
-
-    // Optional CA certificate (path)
-    let caCert: string | undefined = undefined;
-    const caPath = Deno.env.get("DB_SSL_CA_PATH");
-    if (caPath) {
-      try {
-        caCert = Deno.readTextFileSync(caPath);
-      } catch (e) {
-        console.warn("Could not read DB SSL CA file at", caPath, e);
-      }
-    }
-
-    // Build connection config object compatible with @db/postgres Pool
-    // Many Postgres clients accept an object { user, password, hostname, port, database, tls }
-    const config: Record<string, unknown> = {
-      user: user || undefined,
-      password: password || undefined,
-      hostname,
-      port,
-      database,
-    };
-
-    // Attach TLS configuration in a conservative, widely compatible shape.
-    // Drivers may accept `tls: { caCertificates: [...], rejectUnauthorized: boolean }` or
-    // `tls: true`. We provide both to maximize compatibility.
-    const tlsObj: Record<string, unknown> = {
-      enabled: true,
-      rejectUnauthorized,
-    };
-    if (caCert) {
-      // Provide CA as text; drivers that accept CA arrays may handle this.
-      tlsObj.caCertificates = [caCert];
-    }
-    config.tls = tlsObj;
-
-    // Pass config object to Pool. Cast to unknown to satisfy the imported Pool type
-    this.pool = new Pool(
-      config as unknown as Record<string, unknown>,
-      10,
-      true,
-    );
+    this.pool = createDatabasePool(databaseUrl, 10);
   }
 
   async connect() {

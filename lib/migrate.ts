@@ -1,10 +1,10 @@
 // 数据库迁移工具 - 用于应用启动时自动迁移
-import { Pool } from "@db/postgres";
+import { createDatabasePool } from "./db.ts";
 
 export async function runMigrations(databaseUrl: string): Promise<void> {
   console.log("🔄 Starting database migration...");
 
-  const pool = new Pool(databaseUrl, 2, true);
+  const pool = createDatabasePool(databaseUrl, 2);
   const client = await pool.connect();
 
   try {
@@ -33,7 +33,7 @@ export async function checkDatabaseConnection(
   databaseUrl: string,
 ): Promise<boolean> {
   try {
-    const pool = new Pool(databaseUrl, 1, true);
+    const pool = createDatabasePool(databaseUrl, 1);
     const client = await pool.connect();
 
     // 简单的连接测试
@@ -53,7 +53,7 @@ export async function checkDatabaseConnection(
 // 检查表是否存在
 export async function checkTablesExist(databaseUrl: string): Promise<boolean> {
   try {
-    const pool = new Pool(databaseUrl, 1, true);
+    const pool = createDatabasePool(databaseUrl, 1);
     const client = await pool.connect();
 
     const result = await client.queryObject<{ exists: boolean }>(
