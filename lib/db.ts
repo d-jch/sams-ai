@@ -310,18 +310,20 @@ export async function initializeDatabase(): Promise<void> {
   // 自动运行数据库迁移
   const databaseUrl = Deno.env.get("DATABASE_URL");
   if (databaseUrl) {
-    const env = Deno.env.get("DENO_ENV") || Deno.env.get("APP_ENV") || "development";
     const autoMigrateEnv = Deno.env.get("AUTO_MIGRATE");
-    const isProduction = env === "production";
-    
-    // 详细的环境变量调试日志
-    console.log(`🔍 Migration check - ENV: ${env}, AUTO_MIGRATE: ${autoMigrateEnv}`);
-    
-    // 在生产环境或显式启用时运行自动迁移
-    const autoMigrate = autoMigrateEnv === "true" || isProduction;
     const forceMode = Deno.env.get("AUTO_MIGRATE_FORCE") === "true";
-    
-    console.log(`🤖 Auto-migration ${autoMigrate ? "ENABLED" : "DISABLED"} (production: ${isProduction}, explicit: ${autoMigrateEnv === "true"}, force: ${forceMode})`);
+
+    // 详细的环境变量调试日志
+    console.log(`🔍 Migration check - AUTO_MIGRATE: ${autoMigrateEnv}`);
+
+    // 只根据 AUTO_MIGRATE 环境变量决定是否迁移
+    const autoMigrate = autoMigrateEnv === "true";
+
+    console.log(
+      `🤖 Auto-migration ${autoMigrate ? "ENABLED" : "DISABLED"} (explicit: ${
+        autoMigrateEnv === "true"
+      }, force: ${forceMode})`,
+    );
 
     if (autoMigrate) {
       try {
@@ -346,8 +348,12 @@ export async function initializeDatabase(): Promise<void> {
           console.log("✅ Database migration completed successfully");
         } else {
           console.log("✅ Database tables already exist, skipping migration");
-          console.log("💡 If you need to update schema, run: deno task db:migrate --force");
-          console.log("💡 Or set AUTO_MIGRATE_FORCE=true to force migration on deploy");
+          console.log(
+            "💡 If you need to update schema, run: deno task db:migrate --force",
+          );
+          console.log(
+            "💡 Or set AUTO_MIGRATE_FORCE=true to force migration on deploy",
+          );
         }
       } catch (migrationError) {
         console.error("❌ Auto-migration failed:", migrationError);
@@ -356,10 +362,8 @@ export async function initializeDatabase(): Promise<void> {
         );
         console.warn("💡 Or run migration manually: deno task db:migrate");
 
-        // 在开发环境中不要因为迁移失败而停止应用
-        if (env === "production") {
-          throw migrationError;
-        }
+        // 迁移失败时抛出错误（无论什么环境）
+        throw migrationError;
       }
     }
   }

@@ -39,7 +39,7 @@ app.get("/health", async (_ctx) => {
     timestamp: new Date().toISOString(),
     service: "sams-ai-auth",
     version: "2.0.0",
-    environment: Deno.env.get("DENO_ENV") || "development",
+    environment: "ready", // 移除环境区分
     components: {
       database: isDbHealthy ? "healthy" : "unhealthy",
       authentication: "healthy", // Always healthy if service is running
