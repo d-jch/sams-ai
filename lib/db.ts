@@ -307,67 +307,6 @@ export async function initializeDatabase(): Promise<void> {
   const database = getDatabase();
   await database.connect();
 
-  // 自动运行数据库迁移
-  const databaseUrl = Deno.env.get("DATABASE_URL");
-  if (databaseUrl) {
-    const autoMigrateEnv = Deno.env.get("AUTO_MIGRATE");
-    const forceMode = Deno.env.get("AUTO_MIGRATE_FORCE") === "true";
-
-    // 详细的环境变量调试日志
-    console.log(`🔍 Migration check - AUTO_MIGRATE: ${autoMigrateEnv}`);
-
-    // 只根据 AUTO_MIGRATE 环境变量决定是否迁移
-    const autoMigrate = autoMigrateEnv === "true";
-
-    console.log(
-      `🤖 Auto-migration ${autoMigrate ? "ENABLED" : "DISABLED"} (explicit: ${
-        autoMigrateEnv === "true"
-      }, force: ${forceMode})`,
-    );
-
-    if (autoMigrate) {
-      try {
-        console.log("🔄 Running automatic database migration...");
-
-        // 动态导入迁移工具
-        const { runMigrations, checkTablesExist } = await import(
-          "./migrate.ts"
-        );
-
-        // 检查表是否已存在
-        console.log("📋 Checking if database tables exist...");
-        const tablesExist = await checkTablesExist(databaseUrl);
-
-        if (!tablesExist || forceMode) {
-          if (!tablesExist) {
-            console.log("🏗️ Tables not found, running initial migration...");
-          } else if (forceMode) {
-            console.log("🔄 Force mode enabled, running migration anyway...");
-          }
-          await runMigrations(databaseUrl);
-          console.log("✅ Database migration completed successfully");
-        } else {
-          console.log("✅ Database tables already exist, skipping migration");
-          console.log(
-            "💡 If you need to update schema, run: deno task db:migrate --force",
-          );
-          console.log(
-            "💡 Or set AUTO_MIGRATE_FORCE=true to force migration on deploy",
-          );
-        }
-      } catch (migrationError) {
-        console.error("❌ Auto-migration failed:", migrationError);
-        console.warn(
-          "💡 You can disable auto-migration by setting AUTO_MIGRATE=false",
-        );
-        console.warn("💡 Or run migration manually: deno task db:migrate");
-
-        // 迁移失败时抛出错误（无论什么环境）
-        throw migrationError;
-      }
-    }
-  }
-
   // Clean up inactive sessions on startup (older than 10 days)
   const cutoffTime = new Date(Date.now() - (10 * 24 * 60 * 60 * 1000)); // 10 days
   try {
@@ -376,8 +315,7 @@ export async function initializeDatabase(): Promise<void> {
       console.log(`🧹 Cleaned up ${cleanedSessions} inactive sessions`);
     }
   } catch (err) {
-    // If sessions table doesn't exist, log actionable guidance instead of crashing the dev server.
-    // Postgres 'relation does not exist' error code is 42P01.
+    // If sessions table doesn't exist, provide clear guidance
     const e = err as unknown as {
       fields?: Record<string, unknown>;
       code?: string;
@@ -391,13 +329,9 @@ export async function initializeDatabase(): Promise<void> {
       /relation\s+"sessions"\s+does not exist/i.test(message)
     ) {
       console.warn(
-        "❌ Database cleanup skipped: the 'sessions' table does not exist.",
+        "⚠️ Database tables not found. Please run database migration:",
       );
-      console.warn(
-        "   Tables should have been created by auto-migration. If disabled:",
-      );
-      console.warn("   Run: deno task db:migrate");
-      console.warn("   Or manually apply: sql/schema.sql");
+      console.warn("   deno task db:migrate");
     } else {
       // Unknown error — rethrow so it surfaces during initialization
       console.error("Failed to initialize database:", err);
