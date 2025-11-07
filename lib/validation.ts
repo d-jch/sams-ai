@@ -92,7 +92,7 @@ export class Validator {
   }
 
   /**
-   * Validate name (letters, spaces, hyphens, apostrophes only)
+   * Validate name (支持中文或英文，不允许混合)
    */
   name(value: string, fieldName: string = "name"): this {
     if (!value) {
@@ -100,12 +100,17 @@ export class Validator {
       return this;
     }
 
-    // Allow letters, spaces, hyphens, and apostrophes (for names like O'Connor, Van Der Berg)
-    const nameRegex = /^[a-zA-Z\s\-']+$/;
+    // Check if it's pure Chinese name (including spaces, hyphens)
+    const chineseNameRegex = /^[\u4e00-\u9fa5\s\-]+$/;
+    // Check if it's pure English name (including spaces, hyphens, apostrophes)
+    const englishNameRegex = /^[a-zA-Z\s\-']+$/;
 
-    if (!nameRegex.test(value)) {
+    const isPureChinese = chineseNameRegex.test(value);
+    const isPureEnglish = englishNameRegex.test(value);
+
+    if (!isPureChinese && !isPureEnglish) {
       this.errors[fieldName] =
-        `${fieldName} can only contain letters, spaces, hyphens, and apostrophes`;
+        `${fieldName} must be either pure Chinese or pure English (no mixing)`;
     } else if (value.trim().length < 2) {
       this.errors[fieldName] =
         `${fieldName} must be at least 2 characters long`;

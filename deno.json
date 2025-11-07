@@ -13,8 +13,10 @@
     "test:middleware": "deno test -A --filter middleware",
     "test:routes": "deno test -A --filter routes",
     "test:api": "deno test -A --filter api",
-    "setup:deployment": "deno run -A scripts/setup-deployment.ts",
-    "db:migrate": "deno run -A scripts/migrate.ts"
+    "db:migrate": "deno run -A scripts/migrate.ts",
+    "db:seed": "deno run -A scripts/seed.ts",
+    "db:reset": "deno run -A scripts/reset.ts",
+    "db:test": "deno run -A scripts/test-connection.ts"
   },
   "lint": {
     "rules": {
@@ -32,6 +34,7 @@
   "imports": {
     "@/": "./",
     "@felix/argon2": "jsr:@felix/argon2@^3.0.2",
+    "@std/dotenv": "jsr:@std/dotenv@^0.225.5",
     "@std/http": "jsr:@std/http@^1.0.21",
     "daisyui": "npm:daisyui@^5.4.3",
     "fresh": "jsr:@fresh/core@^2.1.4",

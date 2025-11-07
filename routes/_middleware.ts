@@ -128,7 +128,7 @@ export function setSessionCookies(
     name: SESSION_COOKIE_NAME,
     value: sessionToken,
     httpOnly: true,
-    secure: Deno.env.get("APP_ENV") === "production",
+    secure: true, // Always use secure cookies
     sameSite: "Lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 30, // 30 days
@@ -139,7 +139,7 @@ export function setSessionCookies(
     name: JWT_COOKIE_NAME,
     value: jwt,
     httpOnly: true,
-    secure: Deno.env.get("APP_ENV") === "production",
+    secure: true, // Always use secure cookies
     sameSite: "Lax",
     path: "/",
     maxAge: 5 * 60, // 5 minutes (matches JWT expiration)
@@ -164,7 +164,7 @@ export function setSessionCookie(
     name: SESSION_COOKIE_NAME,
     value: sessionToken,
     httpOnly: true,
-    secure: Deno.env.get("APP_ENV") === "production",
+    secure: true, // Always use secure cookies
     sameSite: "Lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 30, // 30 days
@@ -183,9 +183,15 @@ export function setSessionCookie(
 export function clearSessionCookies(response: Response): Response {
   const newHeaders = new Headers(response.headers);
 
-  // Clear both cookies
-  deleteCookie(newHeaders, SESSION_COOKIE_NAME, { path: "/" });
-  deleteCookie(newHeaders, JWT_COOKIE_NAME, { path: "/" });
+  // Clear both cookies with explicit attributes to match set cookie
+  deleteCookie(newHeaders, SESSION_COOKIE_NAME, { 
+    path: "/",
+    domain: undefined, // Let browser handle domain
+  });
+  deleteCookie(newHeaders, JWT_COOKIE_NAME, { 
+    path: "/",
+    domain: undefined, // Let browser handle domain
+  });
 
   return new Response(response.body, {
     status: response.status,

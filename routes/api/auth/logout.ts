@@ -1,6 +1,6 @@
 import { define } from "@/utils.ts";
 import { getAuth } from "@/lib/auth.ts";
-import { clearSessionCookie } from "@/routes/_middleware.ts";
+import { clearSessionCookies } from "@/routes/_middleware.ts";
 import type { AuthResponse } from "@/lib/types.ts";
 
 export const handler = define.handlers({
@@ -13,17 +13,16 @@ export const handler = define.handlers({
         await auth.invalidateSession(ctx.state.session.id);
       }
 
-      // Create response
-      const response = Response.json(
-        {
-          success: true,
-          message: "Logged out successfully",
-        } satisfies AuthResponse,
-        { status: 200 },
-      );
+      // Create redirect response to home page with success message
+      const response = new Response(null, {
+        status: 302,
+        headers: {
+          Location: "/?message=logout_success",
+        },
+      });
 
-      // Clear session cookie
-      return clearSessionCookie(response);
+      // Clear both session and JWT cookies
+      return clearSessionCookies(response);
     } catch (error) {
       console.error("Logout error:", error);
 

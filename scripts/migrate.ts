@@ -17,7 +17,7 @@
  *   - 执行数据库架构迁移
  *   - 验证迁移结果
  */
-
+import "@std/dotenv/load";
 import {
   checkDatabaseConnection,
   checkTablesExist,
