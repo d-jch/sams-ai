@@ -28,7 +28,7 @@ const seedUsers = [
   {
     email: "researcher@sams.ai",
     password: "Research123!@#",
-    name: "研究员",
+    name: "科研人员",
     role: "researcher" as const,
   },
   {
