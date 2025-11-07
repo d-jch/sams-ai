@@ -10,6 +10,7 @@ Deno.test("Auth middleware - sets state correctly", async () => {
       id: "1",
       email: "test@example.com",
       name: "Test User",
+      role: "researcher",
       emailVerified: true,
       createdAt: new Date(),
       updatedAt: new Date(),
