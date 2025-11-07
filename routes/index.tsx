@@ -141,7 +141,8 @@ export default define.page(function HomePage(props) {
                         进入工作台
                       </a>
                     </div>
-                  ):<> </>}
+                  )
+                  : null}
               </div>
             </div>
           </div>

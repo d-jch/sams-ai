@@ -184,11 +184,11 @@ export function clearSessionCookies(response: Response): Response {
   const newHeaders = new Headers(response.headers);
 
   // Clear both cookies with explicit attributes to match set cookie
-  deleteCookie(newHeaders, SESSION_COOKIE_NAME, { 
+  deleteCookie(newHeaders, SESSION_COOKIE_NAME, {
     path: "/",
     domain: undefined, // Let browser handle domain
   });
-  deleteCookie(newHeaders, JWT_COOKIE_NAME, { 
+  deleteCookie(newHeaders, JWT_COOKIE_NAME, {
     path: "/",
     domain: undefined, // Let browser handle domain
   });
