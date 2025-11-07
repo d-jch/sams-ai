@@ -1,9 +1,25 @@
 // Core authentication types following Lucia-style patterns
 
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+export type UserRole = "researcher" | "technician" | "lab_manager" | "admin";
+export type SequencingType = "WGS" | "WES" | "RNA-seq" | "amplicon" | "ChIP-seq";
+export type RequestStatus = "pending" | "approved" | "in_progress" | "completed" | "cancelled";
+export type PriorityLevel = "low" | "normal" | "high" | "urgent";
+export type SampleType = "DNA" | "RNA" | "Protein" | "Cell";
+export type QCStatus = "pending" | "passed" | "failed" | "retest";
+
+// =============================================================================
+// USER & AUTH TYPES
+// =============================================================================
+
 export interface User {
   id: string;
   email: string;
   name: string;
+  role: UserRole;
   emailVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -26,6 +42,7 @@ export interface CreateUserData {
   email: string;
   password: string;
   name: string;
+  role?: UserRole;
 }
 
 export interface LoginCredentials {
@@ -39,6 +56,7 @@ export interface UserRow {
   email: string;
   password_hash: string;
   name: string;
+  role: UserRole;
   email_verified: boolean;
   created_at: Date;
   updated_at: Date;
@@ -80,3 +98,113 @@ export interface ValidationError {
   field: string;
   message: string;
 }
+
+// =============================================================================
+// BUSINESS TYPES - Sequencing Requests
+// =============================================================================
+
+export interface SequencingRequest {
+  id: string;
+  userId: string;
+  projectName: string;
+  sequencingType: SequencingType;
+  status: RequestStatus;
+  priority: PriorityLevel;
+  estimatedCost?: number;
+  actualCost?: number;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SequencingRequestRow {
+  id: string;
+  user_id: string;
+  project_name: string;
+  sequencing_type: SequencingType;
+  status: RequestStatus;
+  priority: PriorityLevel;
+  estimated_cost?: number;
+  actual_cost?: number;
+  notes?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface CreateSequencingRequestData {
+  userId: string;
+  projectName: string;
+  sequencingType: SequencingType;
+  priority?: PriorityLevel;
+  estimatedCost?: number;
+  notes?: string;
+}
+
+// =============================================================================
+// BUSINESS TYPES - Samples
+// =============================================================================
+
+export interface Sample {
+  id: string;
+  requestId: string;
+  name: string;
+  type: SampleType;
+  barcode?: string;
+  concentration?: number;
+  volume?: number;
+  qcStatus: QCStatus;
+  storageLocation?: string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SampleRow {
+  id: string;
+  request_id: string;
+  name: string;
+  type: SampleType;
+  barcode?: string;
+  concentration?: number;
+  volume?: number;
+  qc_status: QCStatus;
+  storage_location?: string;
+  notes?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface CreateSampleData {
+  requestId: string;
+  name: string;
+  type: SampleType;
+  concentration?: number;
+  volume?: number;
+  storageLocation?: string;
+  notes?: string;
+}
+
+// =============================================================================
+// BUSINESS TYPES - Status History
+// =============================================================================
+
+export interface RequestStatusHistory {
+  id: string;
+  requestId: string;
+  oldStatus?: RequestStatus;
+  newStatus: RequestStatus;
+  changedBy: string;
+  comment?: string;
+  createdAt: Date;
+}
+
+export interface RequestStatusHistoryRow {
+  id: string;
+  request_id: string;
+  old_status?: RequestStatus;
+  new_status: RequestStatus;
+  changed_by: string;
+  comment?: string;
+  created_at: Date;
+}
+

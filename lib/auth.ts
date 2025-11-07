@@ -58,6 +58,7 @@ export class Auth {
       email: userData.email,
       name: userData.name,
       password: userData.password,
+      role: userData.role, // Pass role to database
       passwordHash,
     });
 

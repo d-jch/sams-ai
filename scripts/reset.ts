@@ -27,6 +27,15 @@ async function reset() {
     using client = await pool.connect();
 
     // Drop tables in reverse order of dependencies
+    await client.queryObject("DROP TABLE IF EXISTS request_status_history CASCADE;");
+    console.log("  ✅ Dropped table: request_status_history");
+
+    await client.queryObject("DROP TABLE IF EXISTS samples CASCADE;");
+    console.log("  ✅ Dropped table: samples");
+
+    await client.queryObject("DROP TABLE IF EXISTS sequencing_requests CASCADE;");
+    console.log("  ✅ Dropped table: sequencing_requests");
+
     await client.queryObject("DROP TABLE IF EXISTS sessions CASCADE;");
     console.log("  ✅ Dropped table: sessions");
 
@@ -37,6 +46,15 @@ async function reset() {
       "DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;",
     );
     console.log("  ✅ Dropped function: update_updated_at_column");
+
+    // Drop ENUM types
+    await client.queryObject("DROP TYPE IF EXISTS qc_status CASCADE;");
+    await client.queryObject("DROP TYPE IF EXISTS sample_type CASCADE;");
+    await client.queryObject("DROP TYPE IF EXISTS priority_level CASCADE;");
+    await client.queryObject("DROP TYPE IF EXISTS request_status CASCADE;");
+    await client.queryObject("DROP TYPE IF EXISTS sequencing_type CASCADE;");
+    await client.queryObject("DROP TYPE IF EXISTS user_role CASCADE;");
+    console.log("  ✅ Dropped all ENUM types");
 
     console.log("\n📋 Recreating schema...");
 

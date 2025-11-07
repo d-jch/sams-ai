@@ -105,13 +105,15 @@ class Database {
   ): Promise<User> {
     using client = await this.pool.connect();
 
+    const role = userData.role || "researcher"; // Default role
+
     const result = await client.queryObject<UserRow>(
       `
-      INSERT INTO users (email, password_hash, name)
-      VALUES ($1, $2, $3)
+      INSERT INTO users (email, password_hash, name, role)
+      VALUES ($1, $2, $3, $4)
       RETURNING *
     `,
-      [userData.email, userData.passwordHash, userData.name],
+      [userData.email, userData.passwordHash, userData.name, role],
     );
 
     const userRow = result.rows[0];
@@ -270,6 +272,7 @@ class Database {
       id: row.id,
       email: row.email,
       name: row.name,
+      role: row.role,
       emailVerified: row.email_verified,
       createdAt: row.created_at,
       updatedAt: row.updated_at,

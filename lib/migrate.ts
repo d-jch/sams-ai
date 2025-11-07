@@ -1,6 +1,9 @@
 // 数据库迁移工具 - 用于应用启动时自动迁移
 import { createDatabasePool } from "./db.ts";
 
+// 导出 createDatabasePool 供迁移脚本使用
+export { createDatabasePool };
+
 export async function runMigrations(databaseUrl: string): Promise<void> {
   console.log("🔄 Starting database migration...");
 
