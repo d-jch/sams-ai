@@ -27,13 +27,17 @@ async function reset() {
     using client = await pool.connect();
 
     // Drop tables in reverse order of dependencies
-    await client.queryObject("DROP TABLE IF EXISTS request_status_history CASCADE;");
+    await client.queryObject(
+      "DROP TABLE IF EXISTS request_status_history CASCADE;",
+    );
     console.log("  ✅ Dropped table: request_status_history");
 
     await client.queryObject("DROP TABLE IF EXISTS samples CASCADE;");
     console.log("  ✅ Dropped table: samples");
 
-    await client.queryObject("DROP TABLE IF EXISTS sequencing_requests CASCADE;");
+    await client.queryObject(
+      "DROP TABLE IF EXISTS sequencing_requests CASCADE;",
+    );
     console.log("  ✅ Dropped table: sequencing_requests");
 
     await client.queryObject("DROP TABLE IF EXISTS sessions CASCADE;");

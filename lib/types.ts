@@ -5,8 +5,18 @@
 // =============================================================================
 
 export type UserRole = "researcher" | "technician" | "lab_manager" | "admin";
-export type SequencingType = "WGS" | "WES" | "RNA-seq" | "amplicon" | "ChIP-seq";
-export type RequestStatus = "pending" | "approved" | "in_progress" | "completed" | "cancelled";
+export type SequencingType =
+  | "WGS"
+  | "WES"
+  | "RNA-seq"
+  | "amplicon"
+  | "ChIP-seq";
+export type RequestStatus =
+  | "pending"
+  | "approved"
+  | "in_progress"
+  | "completed"
+  | "cancelled";
 export type PriorityLevel = "low" | "normal" | "high" | "urgent";
 export type SampleType = "DNA" | "RNA" | "Protein" | "Cell";
 export type QCStatus = "pending" | "passed" | "failed" | "retest";
@@ -207,4 +217,3 @@ export interface RequestStatusHistoryRow {
   comment?: string;
   created_at: Date;
 }
-

@@ -1,19 +1,19 @@
 #!/usr/bin/env -S deno run --allow-net --allow-env --allow-read
 /**
  * Migration: Add core business tables
- * 
+ *
  * This migration adds:
  * - role column to users table
  * - sequencing_requests table
  * - samples table
  * - request_status_history table
- * 
+ *
  * Run with: deno task db:migrate:core
  */
 
 import "@std/dotenv/load";
 import { Pool } from "@db/postgres";
-import { createDatabasePool } from "../../lib/migrate.ts";
+import { createDatabasePool } from "../../lib/db.ts";
 
 async function migrateUp() {
   console.log("📦 SAMS Core Tables Migration - UP");
@@ -31,7 +31,7 @@ async function migrateUp() {
     const client = await pool.connect();
 
     console.log("\n1️⃣  Creating ENUM types...");
-    
+
     // Create user_role ENUM
     await client.queryObject(`
       DO $$ BEGIN
@@ -93,7 +93,7 @@ async function migrateUp() {
     console.log("  ✅ qc_status ENUM created");
 
     console.log("\n2️⃣  Adding role column to users table...");
-    
+
     // Check if role column exists
     const roleCheckResult = await client.queryObject<{ exists: boolean }>(`
       SELECT EXISTS (
@@ -108,7 +108,7 @@ async function migrateUp() {
         ADD COLUMN role user_role NOT NULL DEFAULT 'researcher';
       `);
       console.log("  ✅ role column added to users table");
-      
+
       // Create index on role
       await client.queryObject(`
         CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
@@ -196,7 +196,7 @@ async function migrateUp() {
     console.log("  ✅ Indexes created for request_status_history");
 
     console.log("\n6️⃣  Creating triggers for updated_at columns...");
-    
+
     // Trigger for sequencing_requests
     await client.queryObject(`
       CREATE OR REPLACE TRIGGER update_requests_updated_at 
@@ -247,17 +247,23 @@ async function migrateDown() {
     const client = await pool.connect();
 
     console.log("\n⚠️  WARNING: This will drop core business tables!");
-    console.log("   All sequencing requests, samples, and history will be lost.");
+    console.log(
+      "   All sequencing requests, samples, and history will be lost.",
+    );
 
     console.log("\n1️⃣  Dropping tables...");
-    
-    await client.queryObject("DROP TABLE IF EXISTS request_status_history CASCADE;");
+
+    await client.queryObject(
+      "DROP TABLE IF EXISTS request_status_history CASCADE;",
+    );
     console.log("  ✅ Dropped request_status_history");
 
     await client.queryObject("DROP TABLE IF EXISTS samples CASCADE;");
     console.log("  ✅ Dropped samples");
 
-    await client.queryObject("DROP TABLE IF EXISTS sequencing_requests CASCADE;");
+    await client.queryObject(
+      "DROP TABLE IF EXISTS sequencing_requests CASCADE;",
+    );
     console.log("  ✅ Dropped sequencing_requests");
 
     console.log("\n2️⃣  Removing role column from users...");
