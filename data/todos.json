@@ -1,0 +1,34 @@
+{
+  "todos": [
+    {
+      "id": 1,
+      "title": "Create todos data store",
+      "description": "Add data/todos.json and lib/todos.ts utilities to read/write todos persistently.",
+      "status": "completed"
+    },
+    {
+      "id": 2,
+      "title": "Build TODO web page",
+      "description": "Create routes/todo.tsx page to render current todo list with daisyUI styles.",
+      "status": "completed"
+    },
+    {
+      "id": 3,
+      "title": "Implement todos API",
+      "description": "Add REST endpoints under routes/api/todos for list/create/update/delete.",
+      "status": "completed"
+    },
+    {
+      "id": 4,
+      "title": "Add interactive island",
+      "description": "Create islands/TodoList.tsx to toggle status and add items via fetch to API.",
+      "status": "completed"
+    },
+    {
+      "id": 5,
+      "title": "Sync tool todos to file",
+      "description": "Ensure future manage_todo_list updates also write to data/todos.json to keep page in sync.",
+      "status": "not-started"
+    }
+  ]
+}
