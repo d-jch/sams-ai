@@ -22,13 +22,13 @@
       "id": 4,
       "title": "添加权限控制中间件",
       "description": "实现基于角色的权限检查函数（requireRole, canAccessRequest）；在路由中应用权限验证",
-      "status": "not-started"
+      "status": "completed"
     },
     {
       "id": 5,
       "title": "创建申请管理页面",
       "description": "routes/requests/index.tsx (列表)、routes/requests/new.tsx (新建)、routes/requests/[id].tsx (详情)；集成 islands 交互组件",
-      "status": "not-started"
+      "status": "completed"
     },
     {
       "id": 6,
@@ -40,7 +40,7 @@
       "id": 7,
       "title": "添加API测试",
       "description": "在 tests/ 下为 requests/samples API 添加单元测试和集成测试，覆盖CRUD和权限场景",
-      "status": "not-started"
+      "status": "in-progress"
     },
     {
       "id": 8,
