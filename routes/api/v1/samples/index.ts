@@ -1,14 +1,15 @@
 import { define } from "../../../../utils.ts";
 import { getDatabase } from "../../../../lib/db.ts";
+import { canAccessRequest, requireAuth } from "../../../../lib/permissions.ts";
+import type { User } from "../../../../lib/types.ts";
 
 export const handler = define.handlers({
   // GET /api/v1/samples?request_id=xxx - 获取样品列表
   async GET(ctx) {
-    const user = ctx.state.user;
-    if (!user) {
-      return Response.json({ error: "未授权" }, { status: 401 });
-    }
+    const authCheck = requireAuth(ctx);
+    if (authCheck) return authCheck;
 
+    const user = ctx.state.user as User;
     const url = new URL(ctx.req.url);
     const requestId = url.searchParams.get("request_id");
 
@@ -19,26 +20,12 @@ export const handler = define.handlers({
       );
     }
 
-    const db = getDatabase();
-
     try {
-      // 先检查申请是否存在及权限
-      const request = await db.getRequestById(requestId);
+      // 检查申请访问权限
+      const accessCheck = await canAccessRequest(user, requestId);
+      if (accessCheck !== true) return accessCheck;
 
-      if (!request) {
-        return Response.json({ error: "申请不存在" }, { status: 404 });
-      }
-
-      // 权限检查
-      if (
-        request.userId !== user.id &&
-        user.role !== "admin" &&
-        user.role !== "lab_manager" &&
-        user.role !== "technician"
-      ) {
-        return Response.json({ error: "无权访问" }, { status: 403 });
-      }
-
+      const db = getDatabase();
       const samples = await db.getSamplesByRequestId(requestId);
 
       return Response.json({
@@ -56,10 +43,10 @@ export const handler = define.handlers({
 
   // POST /api/v1/samples - 创建新样品
   async POST(ctx) {
-    const user = ctx.state.user;
-    if (!user) {
-      return Response.json({ error: "未授权" }, { status: 401 });
-    }
+    const authCheck = requireAuth(ctx);
+    if (authCheck) return authCheck;
+
+    const user = ctx.state.user as User;
 
     try {
       const body = await ctx.req.json();

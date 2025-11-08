@@ -1,13 +1,15 @@
 import { define } from "../../../../utils.ts";
 import { getDatabase } from "../../../../lib/db.ts";
+import { requireAuth } from "../../../../lib/permissions.ts";
+import type { User } from "../../../../lib/types.ts";
 
 export const handler = define.handlers({
   // GET /api/v1/requests - 获取申请列表
   async GET(ctx) {
-    const user = ctx.state.user;
-    if (!user) {
-      return Response.json({ error: "未授权" }, { status: 401 });
-    }
+    const authCheck = requireAuth(ctx);
+    if (authCheck) return authCheck;
+
+    const user = ctx.state.user as User;
 
     try {
       const db = getDatabase();
@@ -32,10 +34,10 @@ export const handler = define.handlers({
 
   // POST /api/v1/requests - 创建新申请
   async POST(ctx) {
-    const user = ctx.state.user;
-    if (!user) {
-      return Response.json({ error: "未授权" }, { status: 401 });
-    }
+    const authCheck = requireAuth(ctx);
+    if (authCheck) return authCheck;
+
+    const user = ctx.state.user as User;
 
     try {
       const body = await ctx.req.json();

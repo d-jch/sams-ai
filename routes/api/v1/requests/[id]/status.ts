@@ -1,28 +1,23 @@
 import { define } from "../../../../../utils.ts";
 import { getDatabase } from "../../../../../lib/db.ts";
+import {
+  canModifyRequestStatus,
+  requireAuth,
+} from "../../../../../lib/permissions.ts";
+import type { User } from "../../../../../lib/types.ts";
 
 export const handler = define.handlers({
   // PATCH /api/v1/requests/:id/status - 更新申请状态
   async PATCH(ctx) {
-    const user = ctx.state.user;
-    if (!user) {
-      return Response.json({ error: "未授权" }, { status: 401 });
-    }
+    const authCheck = requireAuth(ctx);
+    if (authCheck) return authCheck;
 
+    const user = ctx.state.user as User;
     const { id } = ctx.params;
-    const db = getDatabase();
 
     try {
-      const request = await db.getRequestById(id);
-
-      if (!request) {
-        return Response.json({ error: "申请不存在" }, { status: 404 });
-      }
-
-      // 权限检查：只有实验室主管和管理员可以修改状态
-      if (user.role !== "admin" && user.role !== "lab_manager") {
-        return Response.json({ error: "无权修改状态" }, { status: 403 });
-      }
+      const statusCheck = await canModifyRequestStatus(user, id);
+      if (statusCheck !== true) return statusCheck;
 
       const body = await ctx.req.json();
 
@@ -41,6 +36,7 @@ export const handler = define.handlers({
         );
       }
 
+      const db = getDatabase();
       const updated = await db.updateRequestStatus(
         id,
         body.status,
