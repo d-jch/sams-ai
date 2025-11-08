@@ -27,8 +27,8 @@
     {
       "id": 5,
       "title": "Sync tool todos to file",
-      "description": "Ensure future manage_todo_list updates also write to data/todos.json to keep page in sync.",
-      "status": "not-started"
+      "description": "Add sync API endpoint and script to overwrite data/todos.json from external JSON to automate updates.",
+      "status": "completed"
     }
   ]
 }
