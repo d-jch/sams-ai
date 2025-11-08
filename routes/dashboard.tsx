@@ -1,8 +1,18 @@
 import { define } from "../utils.ts";
-import { requireAuthMiddleware } from "./_middleware.ts";
 
 export const handler = define.handlers({
-  GET: requireAuthMiddleware,
+  GET(ctx) {
+    const user = ctx.state.user;
+    if (!user) {
+      return new Response(null, {
+        status: 302,
+        headers: { Location: "/login" },
+      });
+    }
+
+    // Return empty data object - page will use props.state.user
+    return { data: {} };
+  },
 });
 
 export default define.page<typeof handler>(function DashboardPage(props) {
@@ -90,7 +100,10 @@ export default define.page<typeof handler>(function DashboardPage(props) {
 
             {/* Feature cards */}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-              <div class="card bg-base-200 shadow-xl">
+              <a
+                href="/requests"
+                class="card bg-base-200 shadow-xl hover:shadow-2xl transition-shadow"
+              >
                 <div class="card-body">
                   <h2 class="card-title">
                     <svg
@@ -104,17 +117,50 @@ export default define.page<typeof handler>(function DashboardPage(props) {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                       />
                     </svg>
-                    Secure Authentication
+                    测序申请管理
                   </h2>
                   <p>
-                    Your account is protected with Argon2id password hashing and
-                    secure session management.
+                    查看和管理测序申请，包括创建新申请、查看申请详情和跟踪申请状态。
                   </p>
+                  <div class="card-actions justify-end">
+                    <span class="badge badge-primary">前往</span>
+                  </div>
                 </div>
-              </div>
+              </a>
+
+              <a
+                href="/samples"
+                class="card bg-base-200 shadow-xl hover:shadow-2xl transition-shadow"
+              >
+                <div class="card-body">
+                  <h2 class="card-title">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
+                      />
+                    </svg>
+                    样品管理
+                  </h2>
+                  <p>
+                    管理测序样品信息，包括样品登记、质检状态更新和样品追踪。
+                  </p>
+                  <div class="card-actions justify-end">
+                    <span class="badge badge-secondary">前往</span>
+                  </div>
+                </div>
+              </a>
 
               <div class="card bg-base-200 shadow-xl">
                 <div class="card-body">
@@ -130,41 +176,23 @@ export default define.page<typeof handler>(function DashboardPage(props) {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                       />
                     </svg>
-                    Lightning Fast
+                    角色: {user?.role === "researcher"
+                      ? "研究员"
+                      : user?.role === "technician"
+                      ? "技术员"
+                      : user?.role === "lab_manager"
+                      ? "实验室经理"
+                      : user?.role === "admin"
+                      ? "管理员"
+                      : "未知"}
                   </h2>
                   <p>
-                    Built with Fresh 2 and Deno for optimal performance and
-                    developer experience.
+                    您的账户使用 Argon2id 密码哈希和安全会话管理保护。
                   </p>
-                </div>
-              </div>
-
-              <div class="card bg-base-200 shadow-xl">
-                <div class="card-body">
-                  <h2 class="card-title">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      class="h-6 w-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                      />
-                    </svg>
-                    Modern UI
-                  </h2>
-                  <p>
-                    Beautiful, accessible interface built with TailwindCSS and
-                    daisyUI components.
-                  </p>
+                  <div class="badge badge-success mt-2">账户已激活</div>
                 </div>
               </div>
             </div>
