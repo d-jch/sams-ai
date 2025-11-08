@@ -1,9 +1,6 @@
 ---
 description: Fresh 2
-alwaysApply: true
 applyTo: "**"
-downloadedFrom: https://github.com/denoland/fresh/tree/main/docs
-version: 2.1.x
 ---
 
 # Copilot Instructions

@@ -34,7 +34,7 @@
       "id": 6,
       "title": "创建样品管理页面",
       "description": "routes/samples/index.tsx (列表)、routes/samples/[id].tsx (详情编辑)；与申请关联显示",
-      "status": "not-started"
+      "status": "completed"
     },
     {
       "id": 7,
