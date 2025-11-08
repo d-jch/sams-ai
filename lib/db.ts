@@ -388,6 +388,92 @@ class Database {
     return result.rows.map((row) => this.mapRequestRowToRequest(row));
   }
 
+  async getRequestsWithPagination(
+    userId: string | null,
+    filters: {
+      status?: string;
+      sequencingType?: string;
+      priority?: string;
+      dateFrom?: Date;
+      dateTo?: Date;
+    },
+    pagination: { page: number; limit: number },
+  ): Promise<{
+    requests: SequencingRequest[];
+    total: number;
+  }> {
+    using client = await this.pool.connect();
+
+    const conditions: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
+
+    // 如果提供了 userId，则只查询该用户的申请
+    if (userId) {
+      conditions.push(`user_id = $${paramIndex++}`);
+      values.push(userId);
+    }
+
+    // 状态过滤
+    if (filters.status) {
+      conditions.push(`status = $${paramIndex++}`);
+      values.push(filters.status);
+    }
+
+    // 测序类型过滤
+    if (filters.sequencingType) {
+      conditions.push(`sequencing_type = $${paramIndex++}`);
+      values.push(filters.sequencingType);
+    }
+
+    // 优先级过滤
+    if (filters.priority) {
+      conditions.push(`priority = $${paramIndex++}`);
+      values.push(filters.priority);
+    }
+
+    // 日期范围过滤
+    if (filters.dateFrom) {
+      conditions.push(`created_at >= $${paramIndex++}`);
+      values.push(filters.dateFrom);
+    }
+
+    if (filters.dateTo) {
+      conditions.push(`created_at <= $${paramIndex++}`);
+      values.push(filters.dateTo);
+    }
+
+    const whereClause = conditions.length > 0
+      ? `WHERE ${conditions.join(" AND ")}`
+      : "";
+
+    // 获取总数
+    const countResult = await client.queryObject<{ count: number }>(
+      `SELECT COUNT(*) as count FROM sequencing_requests ${whereClause}`,
+      values,
+    );
+    const total = Number(countResult.rows[0]?.count || 0);
+
+    // 获取分页数据
+    const offset = (pagination.page - 1) * pagination.limit;
+    values.push(pagination.limit, offset);
+
+    const result = await client.queryObject<SequencingRequestRow>(
+      `
+      SELECT * FROM sequencing_requests 
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+    `,
+      values,
+    );
+
+    return {
+      requests: result.rows.map((row) => this.mapRequestRowToRequest(row)),
+      total,
+    };
+  }
+
   async updateRequest(
     id: string,
     data: {
@@ -578,6 +664,72 @@ class Database {
     );
 
     return result.rows.map((row) => this.mapSampleRowToSample(row));
+  }
+
+  async getSamplesWithPagination(
+    filters: {
+      type?: string;
+      qcStatus?: string;
+      requestId?: string;
+    },
+    pagination: { page: number; limit: number },
+  ): Promise<{
+    samples: Sample[];
+    total: number;
+  }> {
+    using client = await this.pool.connect();
+
+    const conditions: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
+
+    // 申请 ID 过滤
+    if (filters.requestId) {
+      conditions.push(`request_id = $${paramIndex++}`);
+      values.push(filters.requestId);
+    }
+
+    // 样品类型过滤
+    if (filters.type) {
+      conditions.push(`type = $${paramIndex++}`);
+      values.push(filters.type);
+    }
+
+    // QC 状态过滤
+    if (filters.qcStatus) {
+      conditions.push(`qc_status = $${paramIndex++}`);
+      values.push(filters.qcStatus);
+    }
+
+    const whereClause = conditions.length > 0
+      ? `WHERE ${conditions.join(" AND ")}`
+      : "";
+
+    // 获取总数
+    const countResult = await client.queryObject<{ count: number }>(
+      `SELECT COUNT(*) as count FROM samples ${whereClause}`,
+      values,
+    );
+    const total = Number(countResult.rows[0]?.count || 0);
+
+    // 获取分页数据
+    const offset = (pagination.page - 1) * pagination.limit;
+    values.push(pagination.limit, offset);
+
+    const result = await client.queryObject<SampleRow>(
+      `
+      SELECT * FROM samples 
+      ${whereClause}
+      ORDER BY created_at ASC
+      LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+    `,
+      values,
+    );
+
+    return {
+      samples: result.rows.map((row) => this.mapSampleRowToSample(row)),
+      total,
+    };
   }
 
   async updateSample(

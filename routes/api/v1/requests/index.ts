@@ -4,7 +4,7 @@ import { requireAuth } from "../../../../lib/permissions.ts";
 import type { User } from "../../../../lib/types.ts";
 
 export const handler = define.handlers({
-  // GET /api/v1/requests - 获取申请列表
+  // GET /api/v1/requests - 获取申请列表（支持分页和过滤）
   async GET(ctx) {
     const authCheck = requireAuth(ctx);
     if (authCheck) return authCheck;
@@ -12,16 +12,63 @@ export const handler = define.handlers({
     const user = ctx.state.user as User;
 
     try {
+      const url = new URL(ctx.req.url);
+
+      // 解析分页参数
+      const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
+      const limit = Math.min(
+        100,
+        Math.max(1, parseInt(url.searchParams.get("limit") || "10")),
+      );
+
+      // 解析过滤参数
+      const filters: {
+        status?: string;
+        sequencingType?: string;
+        priority?: string;
+        dateFrom?: Date;
+        dateTo?: Date;
+      } = {};
+
+      const status = url.searchParams.get("status");
+      if (status) filters.status = status;
+
+      const sequencingType = url.searchParams.get("sequencingType");
+      if (sequencingType) filters.sequencingType = sequencingType;
+
+      const priority = url.searchParams.get("priority");
+      if (priority) filters.priority = priority;
+
+      const dateFrom = url.searchParams.get("dateFrom");
+      if (dateFrom) filters.dateFrom = new Date(dateFrom);
+
+      const dateTo = url.searchParams.get("dateTo");
+      if (dateTo) filters.dateTo = new Date(dateTo);
+
       const db = getDatabase();
 
       // 管理员和实验室主管可以看所有申请，其他用户只能看自己的
-      const requests = (user.role === "admin" || user.role === "lab_manager")
-        ? await db.getAllRequests()
-        : await db.getRequestsByUserId(user.id);
+      const userId = (user.role === "admin" || user.role === "lab_manager")
+        ? null
+        : user.id;
+
+      const { requests, total } = await db.getRequestsWithPagination(
+        userId,
+        filters,
+        { page, limit },
+      );
+
+      const totalPages = Math.ceil(total / limit);
 
       return Response.json({
         success: true,
         data: requests,
+        meta: {
+          page,
+          limit,
+          total,
+          totalPages,
+        },
       });
     } catch (error) {
       console.error("获取申请列表失败:", error);

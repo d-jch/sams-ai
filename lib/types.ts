@@ -217,3 +217,39 @@ export interface RequestStatusHistoryRow {
   comment?: string;
   created_at: Date;
 }
+
+// =============================================================================
+// PAGINATION & FILTERING TYPES
+// =============================================================================
+
+export interface PaginationParams {
+  page: number; // 页码，从 1 开始
+  limit: number; // 每页数量
+}
+
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number; // 总记录数
+  totalPages: number; // 总页数
+}
+
+export interface PaginatedResponse<T> {
+  success: boolean;
+  data: T[];
+  meta: PaginationMeta;
+}
+
+export interface RequestFilterParams {
+  status?: RequestStatus;
+  sequencingType?: SequencingType;
+  priority?: PriorityLevel;
+  dateFrom?: Date;
+  dateTo?: Date;
+}
+
+export interface SampleFilterParams {
+  type?: SampleType;
+  qcStatus?: QCStatus;
+  requestId?: string;
+}

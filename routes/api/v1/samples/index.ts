@@ -4,33 +4,62 @@ import { canAccessRequest, requireAuth } from "../../../../lib/permissions.ts";
 import type { User } from "../../../../lib/types.ts";
 
 export const handler = define.handlers({
-  // GET /api/v1/samples?request_id=xxx - 获取样品列表
+  // GET /api/v1/samples - 获取样品列表（支持分页和过滤）
   async GET(ctx) {
     const authCheck = requireAuth(ctx);
     if (authCheck) return authCheck;
 
     const user = ctx.state.user as User;
     const url = new URL(ctx.req.url);
-    const requestId = url.searchParams.get("request_id");
-
-    if (!requestId) {
-      return Response.json(
-        { error: "缺少 request_id 参数" },
-        { status: 400 },
-      );
-    }
 
     try {
-      // 检查申请访问权限
-      const accessCheck = await canAccessRequest(user, requestId);
-      if (accessCheck !== true) return accessCheck;
+      // 解析分页参数
+      const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
+      const limit = Math.min(
+        100,
+        Math.max(1, parseInt(url.searchParams.get("limit") || "10")),
+      );
+
+      // 解析过滤参数
+      const filters: {
+        type?: string;
+        qcStatus?: string;
+        requestId?: string;
+      } = {};
+
+      const requestId = url.searchParams.get("requestId");
+      if (requestId) {
+        // 检查申请访问权限
+        const accessCheck = await canAccessRequest(user, requestId);
+        if (accessCheck !== true) return accessCheck;
+
+        filters.requestId = requestId;
+      }
+
+      const type = url.searchParams.get("type");
+      if (type) filters.type = type;
+
+      const qcStatus = url.searchParams.get("qcStatus");
+      if (qcStatus) filters.qcStatus = qcStatus;
 
       const db = getDatabase();
-      const samples = await db.getSamplesByRequestId(requestId);
+
+      const { samples, total } = await db.getSamplesWithPagination(
+        filters,
+        { page, limit },
+      );
+
+      const totalPages = Math.ceil(total / limit);
 
       return Response.json({
         success: true,
         data: samples,
+        meta: {
+          page,
+          limit,
+          total,
+          totalPages,
+        },
       });
     } catch (error) {
       console.error("获取样品列表失败:", error);

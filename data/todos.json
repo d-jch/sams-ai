@@ -40,13 +40,13 @@
       "id": 7,
       "title": "添加API测试",
       "description": "在 tests/ 下为 requests/samples API 添加单元测试和集成测试，覆盖CRUD和权限场景",
-      "status": "in-progress"
+      "status": "completed"
     },
     {
       "id": 8,
       "title": "实现数据分页和过滤",
       "description": "为申请/样品列表API添加分页参数（page/limit）和过滤参数（status/type/date range）",
-      "status": "not-started"
+      "status": "completed"
     }
   ]
 }
