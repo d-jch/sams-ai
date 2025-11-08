@@ -2,33 +2,51 @@
   "todos": [
     {
       "id": 1,
-      "title": "Create todos data store",
-      "description": "Add data/todos.json and lib/todos.ts utilities to read/write todos persistently.",
+      "title": "实现测序申请CRUD API",
+      "description": "在 lib/db.ts 添加 createRequest/getRequests/updateRequest/deleteRequest 方法；在 routes/api/v1/requests/ 实现 GET/POST/PATCH/DELETE 接口",
       "status": "completed"
     },
     {
       "id": 2,
-      "title": "Build TODO web page",
-      "description": "Create routes/todo.tsx page to render current todo list with daisyUI styles.",
+      "title": "实现样品CRUD API",
+      "description": "在 lib/db.ts 添加 createSample/getSamples/updateSample 方法；在 routes/api/v1/samples/ 实现 GET/POST/PATCH 接口",
       "status": "completed"
     },
     {
       "id": 3,
-      "title": "Implement todos API",
-      "description": "Add REST endpoints under routes/api/todos for list/create/update/delete.",
+      "title": "实现申请状态流转API",
+      "description": "添加 updateRequestStatus 方法，自动记录状态变更历史到 request_status_history 表；实现 PATCH /api/v1/requests/:id/status",
       "status": "completed"
     },
     {
       "id": 4,
-      "title": "Add interactive island",
-      "description": "Create islands/TodoList.tsx to toggle status and add items via fetch to API.",
-      "status": "completed"
+      "title": "添加权限控制中间件",
+      "description": "实现基于角色的权限检查函数（requireRole, canAccessRequest）；在路由中应用权限验证",
+      "status": "not-started"
     },
     {
       "id": 5,
-      "title": "Sync tool todos to file",
-      "description": "Add sync API endpoint and script to overwrite data/todos.json from external JSON to automate updates.",
-      "status": "completed"
+      "title": "创建申请管理页面",
+      "description": "routes/requests/index.tsx (列表)、routes/requests/new.tsx (新建)、routes/requests/[id].tsx (详情)；集成 islands 交互组件",
+      "status": "not-started"
+    },
+    {
+      "id": 6,
+      "title": "创建样品管理页面",
+      "description": "routes/samples/index.tsx (列表)、routes/samples/[id].tsx (详情编辑)；与申请关联显示",
+      "status": "not-started"
+    },
+    {
+      "id": 7,
+      "title": "添加API测试",
+      "description": "在 tests/ 下为 requests/samples API 添加单元测试和集成测试，覆盖CRUD和权限场景",
+      "status": "not-started"
+    },
+    {
+      "id": 8,
+      "title": "实现数据分页和过滤",
+      "description": "为申请/样品列表API添加分页参数（page/limit）和过滤参数（status/type/date range）",
+      "status": "not-started"
     }
   ]
 }

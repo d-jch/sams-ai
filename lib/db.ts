@@ -1,6 +1,10 @@
 import { Pool } from "@db/postgres";
 import type {
   CreateUserData,
+  Sample,
+  SampleRow,
+  SequencingRequest,
+  SequencingRequestRow,
   Session,
   SessionRow,
   User,
@@ -277,6 +281,389 @@ class Database {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
+  }
+
+  private mapRequestRowToRequest(row: SequencingRequestRow): SequencingRequest {
+    return {
+      id: row.id,
+      userId: row.user_id,
+      projectName: row.project_name,
+      sequencingType: row.sequencing_type,
+      status: row.status,
+      priority: row.priority,
+      estimatedCost: row.estimated_cost,
+      actualCost: row.actual_cost,
+      notes: row.notes,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  private mapSampleRowToSample(row: SampleRow): Sample {
+    return {
+      id: row.id,
+      requestId: row.request_id,
+      name: row.name,
+      type: row.type,
+      barcode: row.barcode,
+      concentration: row.concentration,
+      volume: row.volume,
+      qcStatus: row.qc_status,
+      storageLocation: row.storage_location,
+      notes: row.notes,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  // Sequencing Request operations
+  async createRequest(data: {
+    userId: string;
+    projectName: string;
+    sequencingType: string;
+    priority?: string;
+    estimatedCost?: number;
+    notes?: string;
+  }): Promise<SequencingRequest> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<SequencingRequestRow>(
+      `
+      INSERT INTO sequencing_requests (user_id, project_name, sequencing_type, priority, estimated_cost, notes)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+    `,
+      [
+        data.userId,
+        data.projectName,
+        data.sequencingType,
+        data.priority || "normal",
+        data.estimatedCost || null,
+        data.notes || null,
+      ],
+    );
+
+    return this.mapRequestRowToRequest(result.rows[0]);
+  }
+
+  async getRequestById(id: string): Promise<SequencingRequest | null> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<SequencingRequestRow>(
+      `
+      SELECT * FROM sequencing_requests WHERE id = $1
+    `,
+      [id],
+    );
+
+    if (result.rows.length === 0) return null;
+    return this.mapRequestRowToRequest(result.rows[0]);
+  }
+
+  async getRequestsByUserId(userId: string): Promise<SequencingRequest[]> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<SequencingRequestRow>(
+      `
+      SELECT * FROM sequencing_requests 
+      WHERE user_id = $1 
+      ORDER BY created_at DESC
+    `,
+      [userId],
+    );
+
+    return result.rows.map((row) => this.mapRequestRowToRequest(row));
+  }
+
+  async getAllRequests(): Promise<SequencingRequest[]> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<SequencingRequestRow>(
+      `
+      SELECT * FROM sequencing_requests 
+      ORDER BY created_at DESC
+    `,
+    );
+
+    return result.rows.map((row) => this.mapRequestRowToRequest(row));
+  }
+
+  async updateRequest(
+    id: string,
+    data: {
+      projectName?: string;
+      sequencingType?: string;
+      priority?: string;
+      estimatedCost?: number;
+      actualCost?: number;
+      notes?: string;
+    },
+  ): Promise<SequencingRequest | null> {
+    using client = await this.pool.connect();
+
+    const updates: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
+
+    if (data.projectName !== undefined) {
+      updates.push(`project_name = $${paramIndex++}`);
+      values.push(data.projectName);
+    }
+    if (data.sequencingType !== undefined) {
+      updates.push(`sequencing_type = $${paramIndex++}`);
+      values.push(data.sequencingType);
+    }
+    if (data.priority !== undefined) {
+      updates.push(`priority = $${paramIndex++}`);
+      values.push(data.priority);
+    }
+    if (data.estimatedCost !== undefined) {
+      updates.push(`estimated_cost = $${paramIndex++}`);
+      values.push(data.estimatedCost);
+    }
+    if (data.actualCost !== undefined) {
+      updates.push(`actual_cost = $${paramIndex++}`);
+      values.push(data.actualCost);
+    }
+    if (data.notes !== undefined) {
+      updates.push(`notes = $${paramIndex++}`);
+      values.push(data.notes);
+    }
+
+    if (updates.length === 0) {
+      return await this.getRequestById(id);
+    }
+
+    updates.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id);
+
+    const result = await client.queryObject<SequencingRequestRow>(
+      `
+      UPDATE sequencing_requests 
+      SET ${updates.join(", ")} 
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `,
+      values,
+    );
+
+    if (result.rows.length === 0) return null;
+    return this.mapRequestRowToRequest(result.rows[0]);
+  }
+
+  async updateRequestStatus(
+    id: string,
+    newStatus: string,
+    changedBy: string,
+    comment?: string,
+  ): Promise<SequencingRequest | null> {
+    using client = await this.pool.connect();
+
+    // Start a transaction
+    await client.queryArray("BEGIN");
+
+    try {
+      // Get current status
+      const currentResult = await client.queryObject<SequencingRequestRow>(
+        `SELECT * FROM sequencing_requests WHERE id = $1`,
+        [id],
+      );
+
+      if (currentResult.rows.length === 0) {
+        await client.queryArray("ROLLBACK");
+        return null;
+      }
+
+      const oldStatus = currentResult.rows[0].status;
+
+      // Update request status
+      const updateResult = await client.queryObject<SequencingRequestRow>(
+        `
+        UPDATE sequencing_requests 
+        SET status = $1, updated_at = CURRENT_TIMESTAMP 
+        WHERE id = $2
+        RETURNING *
+      `,
+        [newStatus, id],
+      );
+
+      // Record status change history
+      await client.queryObject(
+        `
+        INSERT INTO request_status_history (request_id, old_status, new_status, changed_by, comment)
+        VALUES ($1, $2, $3, $4, $5)
+      `,
+        [id, oldStatus, newStatus, changedBy, comment || null],
+      );
+
+      await client.queryArray("COMMIT");
+      return this.mapRequestRowToRequest(updateResult.rows[0]);
+    } catch (error) {
+      await client.queryArray("ROLLBACK");
+      throw error;
+    }
+  }
+
+  async deleteRequest(id: string): Promise<boolean> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject(
+      `
+      DELETE FROM sequencing_requests WHERE id = $1
+    `,
+      [id],
+    );
+
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Sample operations
+  async createSample(data: {
+    requestId: string;
+    name: string;
+    type: string;
+    barcode?: string;
+    concentration?: number;
+    volume?: number;
+    storageLocation?: string;
+    notes?: string;
+  }): Promise<Sample> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<SampleRow>(
+      `
+      INSERT INTO samples (request_id, name, type, barcode, concentration, volume, storage_location, notes)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *
+    `,
+      [
+        data.requestId,
+        data.name,
+        data.type,
+        data.barcode || null,
+        data.concentration || null,
+        data.volume || null,
+        data.storageLocation || null,
+        data.notes || null,
+      ],
+    );
+
+    return this.mapSampleRowToSample(result.rows[0]);
+  }
+
+  async getSampleById(id: string): Promise<Sample | null> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<SampleRow>(
+      `
+      SELECT * FROM samples WHERE id = $1
+    `,
+      [id],
+    );
+
+    if (result.rows.length === 0) return null;
+    return this.mapSampleRowToSample(result.rows[0]);
+  }
+
+  async getSamplesByRequestId(requestId: string): Promise<Sample[]> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<SampleRow>(
+      `
+      SELECT * FROM samples 
+      WHERE request_id = $1 
+      ORDER BY created_at ASC
+    `,
+      [requestId],
+    );
+
+    return result.rows.map((row) => this.mapSampleRowToSample(row));
+  }
+
+  async updateSample(
+    id: string,
+    data: {
+      name?: string;
+      type?: string;
+      barcode?: string;
+      concentration?: number;
+      volume?: number;
+      qcStatus?: string;
+      storageLocation?: string;
+      notes?: string;
+    },
+  ): Promise<Sample | null> {
+    using client = await this.pool.connect();
+
+    const updates: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
+
+    if (data.name !== undefined) {
+      updates.push(`name = $${paramIndex++}`);
+      values.push(data.name);
+    }
+    if (data.type !== undefined) {
+      updates.push(`type = $${paramIndex++}`);
+      values.push(data.type);
+    }
+    if (data.barcode !== undefined) {
+      updates.push(`barcode = $${paramIndex++}`);
+      values.push(data.barcode);
+    }
+    if (data.concentration !== undefined) {
+      updates.push(`concentration = $${paramIndex++}`);
+      values.push(data.concentration);
+    }
+    if (data.volume !== undefined) {
+      updates.push(`volume = $${paramIndex++}`);
+      values.push(data.volume);
+    }
+    if (data.qcStatus !== undefined) {
+      updates.push(`qc_status = $${paramIndex++}`);
+      values.push(data.qcStatus);
+    }
+    if (data.storageLocation !== undefined) {
+      updates.push(`storage_location = $${paramIndex++}`);
+      values.push(data.storageLocation);
+    }
+    if (data.notes !== undefined) {
+      updates.push(`notes = $${paramIndex++}`);
+      values.push(data.notes);
+    }
+
+    if (updates.length === 0) {
+      return await this.getSampleById(id);
+    }
+
+    updates.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id);
+
+    const result = await client.queryObject<SampleRow>(
+      `
+      UPDATE samples 
+      SET ${updates.join(", ")} 
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `,
+      values,
+    );
+
+    if (result.rows.length === 0) return null;
+    return this.mapSampleRowToSample(result.rows[0]);
+  }
+
+  async deleteSample(id: string): Promise<boolean> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject(
+      `
+      DELETE FROM samples WHERE id = $1
+    `,
+      [id],
+    );
+
+    return (result.rowCount || 0) > 0;
   }
 
   // Database health check
