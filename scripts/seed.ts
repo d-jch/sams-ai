@@ -22,13 +22,13 @@ const seedUsers = [
   {
     email: "manager@sams.ai",
     password: "Manager123!@#",
-    name: "Lab Manager",
+    name: "管理员",
     role: "lab_manager" as const,
   },
   {
     email: "researcher@sams.ai",
     password: "Research123!@#",
-    name: "科研人员",
+    name: "申请人",
     role: "researcher" as const,
   },
   {
@@ -87,7 +87,7 @@ async function seed() {
     try {
       using client = await pool.connect();
 
-      // Request 1: WGS project by researcher (pending)
+      // Request 1: WGS project by applicant (pending)
       const req1Result = await client.queryObject<{ id: string }>(
         `
         INSERT INTO sequencing_requests 
@@ -138,7 +138,7 @@ async function seed() {
       );
       console.log(`     ├─ Added 2 samples`);
 
-      // Request 2: RNA-seq project by researcher (approved)
+      // Request 2: RNA-seq project by applicant (approved)
       const req2Result = await client.queryObject<{ id: string }>(
         `
         INSERT INTO sequencing_requests 
@@ -307,7 +307,7 @@ async function seed() {
       "   Manager:     manager@sams.ai / Manager123!@# (lab_manager)",
     );
     console.log(
-      "   Researcher:  researcher@sams.ai / Research123!@# (researcher)",
+      "   Applicant:   researcher@sams.ai / Research123!@# (researcher)",
     );
     console.log("   Technician:  technician@sams.ai / Tech123!@# (technician)");
     console.log("\n📊 Sample data:");

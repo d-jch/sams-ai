@@ -1,4 +1,5 @@
 import { define } from "../utils.ts";
+import { Head } from "fresh/runtime";
 import SignupForm from "../islands/SignupForm.tsx";
 
 export const handler = define.handlers({
@@ -12,21 +13,22 @@ export const handler = define.handlers({
       });
     }
 
+    // Set page metadata
+    ctx.state.title = "注册 - 样品测序管理系统";
+    ctx.state.description = "创建新账户";
+
     return { data: {} };
   },
 });
 
 export default define.page<typeof handler>(function SignupPage() {
   return (
-    <html>
-      <head>
-        <title>Sign Up - Sams AI</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="stylesheet" href="/assets/styles.css" />
-      </head>
-      <body>
-        <SignupForm />
-      </body>
-    </html>
+    <>
+      <Head>
+        <title>注册 - 样品测序管理系统</title>
+        <meta name="description" content="创建新账户" />
+      </Head>
+      <SignupForm />
+    </>
   );
 });

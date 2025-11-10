@@ -7,6 +7,9 @@ export interface State {
   shared: string;
   user: User | null;
   session: Session | null;
+  // Page metadata
+  title?: string;
+  description?: string;
 }
 
 export const define = createDefine<State>();
