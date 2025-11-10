@@ -9,7 +9,7 @@
 - **WGS** (Whole Genome Sequencing) - 全基因组测序
 - **WES** (Whole Exome Sequencing) - 全外显子组测序
 - **RNA-seq** - 转录组测序
-- **amplicon** - 扩增子测序（如16S rRNA）
+- **amplicon** - 扩增子测序
 - **ChIP-seq** - 染色质免疫沉淀测序
 
 ### Sanger 测序
