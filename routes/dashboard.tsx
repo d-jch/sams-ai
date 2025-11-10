@@ -192,7 +192,7 @@ export default define.page<typeof handler>(function DashboardPage(props) {
                     : user?.role === "lab_manager"
                     ? "实验室管理员"
                     : user?.role === "admin"
-                    ? "管理员"
+                    ? "系统管理员"
                     : "未知"}
                 </h2>
                 <p>

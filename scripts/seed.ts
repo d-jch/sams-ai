@@ -16,13 +16,13 @@ const seedUsers = [
   {
     email: "admin@sams.ai",
     password: "Admin123!@#",
-    name: "管理员",
+    name: "系统管理员",
     role: "admin" as const,
   },
   {
     email: "manager@sams.ai",
     password: "Manager123!@#",
-    name: "管理员",
+    name: "实验室管理员",
     role: "lab_manager" as const,
   },
   {
