@@ -185,7 +185,7 @@ CREATE TABLE sequencing_requests (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TYPE sequencing_type AS ENUM ('WGS', 'WES', 'RNA-seq', 'amplicon', 'ChIP-seq');
+CREATE TYPE sequencing_type AS ENUM ('WGS', 'WES', 'RNA-seq', 'amplicon', 'ChIP-seq', 'sanger');
 CREATE TYPE request_status AS ENUM ('pending', 'approved', 'in_progress', 'completed', 'cancelled');
 CREATE TYPE priority_level AS ENUM ('low', 'normal', 'high', 'urgent');
 
@@ -212,7 +212,7 @@ CREATE TABLE samples (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TYPE sample_type AS ENUM ('DNA', 'RNA', 'Protein', 'Cell');
+CREATE TYPE sample_type AS ENUM ('DNA', 'RNA', 'Cell');
 CREATE TYPE qc_status AS ENUM ('pending', 'passed', 'failed', 'retest');
 
 CREATE INDEX idx_samples_request_id ON samples(request_id);
@@ -237,18 +237,161 @@ CREATE INDEX idx_status_history_request_id ON request_status_history(request_id)
 CREATE INDEX idx_status_history_created_at ON request_status_history(created_at);
 ```
 
+#### 引物库表 (primers) - Sanger 测序专用
+
+```sql
+CREATE TABLE primers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(100) NOT NULL,
+  sequence TEXT NOT NULL,
+  tm DECIMAL(4,1),  -- 熔解温度
+  gc_content DECIMAL(4,1),  -- GC含量 (%)
+  length INTEGER,
+  gene_target VARCHAR(200),
+  purpose TEXT,
+  is_public BOOLEAN DEFAULT false,
+  created_by UUID NOT NULL REFERENCES users(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT chk_primer_sequence CHECK (sequence ~ '^[ATGCatgc]+$'),
+  CONSTRAINT chk_primer_length CHECK (length >= 18 AND length <= 30)
+);
+
+CREATE INDEX idx_primers_name ON primers(name);
+CREATE INDEX idx_primers_gene ON primers(gene_target);
+CREATE INDEX idx_primers_public ON primers(is_public);
+```
+
+#### 样品-引物关联表 (sample_primers) - Sanger 测序专用
+
+```sql
+CREATE TABLE sample_primers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sample_id UUID NOT NULL REFERENCES samples(id) ON DELETE CASCADE,
+  primer_id UUID NOT NULL REFERENCES primers(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(sample_id, primer_id)
+);
+
+CREATE INDEX idx_sample_primers_sample ON sample_primers(sample_id);
+CREATE INDEX idx_sample_primers_primer ON sample_primers(primer_id);
+```
+
+#### 96孔板布局表 (plate_layouts) - Sanger 测序专用
+
+```sql
+CREATE TABLE plate_layouts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id UUID NOT NULL REFERENCES sequencing_requests(id),
+  plate_number INTEGER NOT NULL DEFAULT 1,
+  created_by UUID NOT NULL REFERENCES users(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(request_id, plate_number)
+);
+
+CREATE TABLE well_assignments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  plate_layout_id UUID NOT NULL REFERENCES plate_layouts(id) ON DELETE CASCADE,
+  well_position VARCHAR(3) NOT NULL,  -- A1, B2, H12 等
+  sample_id UUID NOT NULL REFERENCES samples(id),
+  primer_id UUID NOT NULL REFERENCES primers(id),
+  status well_status DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT chk_well_position CHECK (well_position ~ '^[A-H](1[0-2]|[1-9])$'),
+  UNIQUE(plate_layout_id, well_position)
+);
+
+CREATE TYPE well_status AS ENUM ('pending', 'loaded', 'sequenced', 'failed');
+
+CREATE INDEX idx_well_assignments_plate ON well_assignments(plate_layout_id);
+CREATE INDEX idx_well_assignments_sample ON well_assignments(sample_id);
+```
+
+#### Barcode 试剂盒表 (barcode_kits) - NGS 专用
+
+```sql
+CREATE TABLE barcode_kits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(200) NOT NULL,
+  manufacturer VARCHAR(100),
+  barcode_count INTEGER NOT NULL,
+  barcode_length INTEGER NOT NULL,
+  compatible_platforms TEXT[],
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE barcode_sequences (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  kit_id UUID NOT NULL REFERENCES barcode_kits(id) ON DELETE CASCADE,
+  index_number VARCHAR(20) NOT NULL,
+  sequence TEXT NOT NULL,
+  sequence_i5 TEXT,  -- 双端Barcode
+  sequence_i7 TEXT,  -- 双端Barcode
+  UNIQUE(kit_id, index_number),
+  CONSTRAINT chk_barcode_seq CHECK (sequence ~ '^[ATGCatgc]+$')
+);
+
+CREATE INDEX idx_barcode_sequences_kit ON barcode_sequences(kit_id);
+```
+
+#### Barcode 分配表 (barcode_assignments) - NGS 专用
+
+```sql
+CREATE TABLE barcode_assignments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id UUID NOT NULL REFERENCES sequencing_requests(id),
+  sample_id UUID NOT NULL REFERENCES samples(id),
+  barcode_kit_id UUID NOT NULL REFERENCES barcode_kits(id),
+  barcode_sequence_id UUID NOT NULL REFERENCES barcode_sequences(id),
+  assigned_by UUID NOT NULL REFERENCES users(id),
+  assigned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(request_id, sample_id),
+  UNIQUE(request_id, barcode_sequence_id)  -- 同一申请中Barcode不能重复
+);
+
+CREATE INDEX idx_barcode_assignments_request ON barcode_assignments(request_id);
+CREATE INDEX idx_barcode_assignments_sample ON barcode_assignments(sample_id);
+```
+
+#### 状态历史表 (request_status_history)
+
+```sql
+CREATE TABLE request_status_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id UUID NOT NULL REFERENCES sequencing_requests(id),
+  old_status request_status,
+  new_status request_status NOT NULL,
+  changed_by UUID NOT NULL REFERENCES users(id),
+  comment TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_status_history_request_id ON request_status_history(request_id);
+CREATE INDEX idx_status_history_created_at ON request_status_history(created_at);
+```
+
 ### 数据关系图
 
 ```
-users (1) ──────────────── (N) sequencing_requests
-                                      │
-                                      │ (1)
-                                      │
-                                      └── (N) samples
-                                      │
-                                      │ (1)  
-                                      │
-                                      └── (N) request_status_history
+users (1) ─────────────── (N) sequencing_requests ──────── (N) samples ──── (N) sample_primers ── (N) primers
+  │                              │                              │                                    │
+  │                              │                              │                                    │
+  │                              │                              └──── (N) barcode_assignments       │
+  │                              │                                           │                       │
+  │                              │                                           └─ (1) barcode_kits    │
+  │                              │                                                   │               │
+  │                              │                                                   └─ (N) barcode_sequences
+  │                              │
+  │                              └──────── (N) request_status_history
+  │                              │
+  │                              └──────── (1) plate_layouts ──── (N) well_assignments
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+                                  (创建者关系)
+
+测序类型特定表：
+- Sanger 测序: primers, sample_primers, plate_layouts, well_assignments
+- NGS 测序: barcode_kits, barcode_sequences, barcode_assignments
 ```
 
 ### 查询优化
@@ -310,13 +453,54 @@ archive_command = 'cp %p /backup/archive/%f'
 // Zod schema验证
 const CreateRequestSchema = z.object({
   project_name: z.string().min(3).max(200),
-  sequencing_type: z.enum(["WGS", "WES", "RNA-seq", "16S", "ChIP-seq"]),
+  sequencing_type: z.enum([
+    "WGS",
+    "WES",
+    "RNA-seq",
+    "amplicon",
+    "ChIP-seq",
+    "sanger",
+  ]),
   samples: z.array(z.object({
     name: z.string().min(1).max(100),
-    type: z.enum(["DNA", "RNA", "Protein", "Cell"]),
+    type: z.enum(["DNA", "RNA", "Cell"]),
     concentration: z.number().positive().optional(),
   })).min(1),
 });
+
+// Sanger 测序特殊验证
+const SangerRequestSchema = CreateRequestSchema.extend({
+  sequencing_type: z.literal("sanger"),
+  sample_primers: z.array(z.object({
+    sample_id: z.string().uuid(),
+    primer_id: z.string().uuid(),
+  })).min(1), // 至少一个样品-引物配对
+});
+
+// 引物验证
+const PrimerSchema = z.object({
+  name: z.string().min(1).max(100),
+  sequence: z.string().regex(/^[ATGCatgc]+$/, "引物序列只能包含 A、T、G、C"),
+  length: z.number().int().min(18).max(30),
+  tm: z.number().min(55).max(65).optional(),
+  gc_content: z.number().min(40).max(60).optional(),
+});
+
+// NGS Barcode 验证
+const BarcodeAssignmentSchema = z.object({
+  request_id: z.string().uuid(),
+  assignments: z.array(z.object({
+    sample_id: z.string().uuid(),
+    barcode_sequence_id: z.string().uuid(),
+  })),
+}).refine(
+  (data) => {
+    // 检查同一申请中Barcode不重复
+    const barcodes = data.assignments.map((a) => a.barcode_sequence_id);
+    return new Set(barcodes).size === barcodes.length;
+  },
+  { message: "同一申请中不能使用重复的Barcode" },
+);
 ```
 
 ### 错误处理

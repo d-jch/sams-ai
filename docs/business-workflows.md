@@ -153,8 +153,13 @@ flowchart TD
     RetryLib -->|否| NotifyLibFail[通知文库失败]
     NotifyLibFail --> End3([结束])
     
-    LibResult -->|合格| PoolSamples[样品混池]
+    LibResult -->|合格| CheckMultiSample{多样品测序?}
+    CheckMultiSample -->|是| AddBarcode[添加Barcode标签]
+    AddBarcode --> PoolSamples[样品混池]
     PoolSamples --> LoadSequencer[上机测序]
+    
+    CheckMultiSample -->|否| LoadSequencer[上机测序]
+    
     LoadSequencer --> UpdateStatusSeq[状态: 测序中]
     UpdateStatusSeq --> MonitorRun[监控测序运行]
     MonitorRun --> SeqComplete{测序完成?}
@@ -164,7 +169,11 @@ flowchart TD
     CheckRetry -->|否| NotifySeqFail[通知测序失败]
     NotifySeqFail --> End4([结束])
     
-    SeqComplete -->|成功| UpdateStatusDone[状态: 测序完成]
+    SeqComplete -->|成功| CheckDemux{需要数据拆分?}
+    CheckDemux -->|是| Demultiplex[数据拆分<br/>Demultiplexing]
+    Demultiplex --> UpdateStatusDone[状态: 测序完成]
+    CheckDemux -->|否| UpdateStatusDone
+    
     UpdateStatusDone --> ArchiveSample[样品归档]
     ArchiveSample --> EndSuccess([流程完成])
     
