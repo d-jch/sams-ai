@@ -209,3 +209,166 @@ export function sanitizeInput(input: string): string {
 export function createValidator(): Validator {
   return new Validator();
 }
+
+// =============================================================================
+// PRIMER SEQUENCE VALIDATION
+// =============================================================================
+
+/**
+ * Validate primer sequence (only contains A, T, G, C)
+ */
+export function validatePrimerSequence(sequence: string): ValidationResult {
+  const errors: Record<string, string> = {};
+
+  if (!sequence) {
+    errors.sequence = "Primer sequence is required";
+    return { isValid: false, errors };
+  }
+
+  // Check if sequence only contains valid nucleotides (A, T, G, C)
+  const validSequenceRegex = /^[ATGCatgc]+$/;
+  if (!validSequenceRegex.test(sequence)) {
+    errors.sequence = "Primer sequence must only contain A, T, G, C characters";
+    return { isValid: false, errors };
+  }
+
+  return { isValid: true, errors };
+}
+
+/**
+ * Validate primer length (18-30 bp)
+ */
+export function validatePrimerLength(sequence: string): ValidationResult {
+  const errors: Record<string, string> = {};
+
+  if (!sequence) {
+    errors.sequence = "Primer sequence is required";
+    return { isValid: false, errors };
+  }
+
+  const length = sequence.length;
+  if (length < 18 || length > 30) {
+    errors.sequence =
+      `Primer length must be between 18-30 bp (current: ${length} bp)`;
+    return { isValid: false, errors };
+  }
+
+  return { isValid: true, errors };
+}
+
+/**
+ * Calculate GC content percentage
+ */
+export function calculateGCContent(sequence: string): number {
+  const upperSeq = sequence.toUpperCase();
+  const gcCount = (upperSeq.match(/[GC]/g) || []).length;
+  return (gcCount / sequence.length) * 100;
+}
+
+/**
+ * Validate GC content (40-60%)
+ */
+export function validateGCContent(sequence: string): ValidationResult {
+  const errors: Record<string, string> = {};
+
+  if (!sequence) {
+    errors.sequence = "Primer sequence is required";
+    return { isValid: false, errors };
+  }
+
+  const gcContent = calculateGCContent(sequence);
+
+  if (gcContent < 40 || gcContent > 60) {
+    errors.gcContent = `GC content must be between 40-60% (current: ${
+      gcContent.toFixed(1)
+    }%)`;
+    return { isValid: false, errors };
+  }
+
+  return { isValid: true, errors };
+}
+
+/**
+ * Calculate melting temperature (Tm) using basic formula
+ * For primers < 14 nt: Tm = (A+T)*2 + (G+C)*4
+ * For primers >= 14 nt: Tm = 64.9 + 41*(G+C-16.4)/(A+T+G+C)
+ */
+export function calculateTm(sequence: string): number {
+  const upperSeq = sequence.toUpperCase();
+  const length = sequence.length;
+
+  const aCount = (upperSeq.match(/A/g) || []).length;
+  const tCount = (upperSeq.match(/T/g) || []).length;
+  const gCount = (upperSeq.match(/G/g) || []).length;
+  const cCount = (upperSeq.match(/C/g) || []).length;
+
+  if (length < 14) {
+    // Simple formula for short primers
+    return (aCount + tCount) * 2 + (gCount + cCount) * 4;
+  } else {
+    // Salt-adjusted formula for longer primers
+    return 64.9 + (41 * (gCount + cCount - 16.4)) / length;
+  }
+}
+
+/**
+ * Validate melting temperature Tm (55-65°C)
+ */
+export function validateTm(sequence: string): ValidationResult {
+  const errors: Record<string, string> = {};
+
+  if (!sequence) {
+    errors.sequence = "Primer sequence is required";
+    return { isValid: false, errors };
+  }
+
+  const tm = calculateTm(sequence);
+
+  if (tm < 55 || tm > 65) {
+    errors.tm = `Melting temperature (Tm) should be between 55-65°C (current: ${
+      tm.toFixed(1)
+    }°C)`;
+    return { isValid: false, errors };
+  }
+
+  return { isValid: true, errors };
+}
+
+/**
+ * Comprehensive primer validation
+ * Combines all primer validation rules
+ */
+export function validatePrimer(
+  sequence: string,
+): ValidationResult {
+  const errors: Record<string, string> = {};
+
+  // Validate sequence characters
+  const seqResult = validatePrimerSequence(sequence);
+  if (!seqResult.isValid) {
+    Object.assign(errors, seqResult.errors);
+  }
+
+  // Validate length
+  const lengthResult = validatePrimerLength(sequence);
+  if (!lengthResult.isValid) {
+    Object.assign(errors, lengthResult.errors);
+  }
+
+  // Validate GC content
+  const gcResult = validateGCContent(sequence);
+  if (!gcResult.isValid) {
+    Object.assign(errors, gcResult.errors);
+  }
+
+  // Validate Tm
+  const tmResult = validateTm(sequence);
+  if (!tmResult.isValid) {
+    Object.assign(errors, tmResult.errors);
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  };
+}

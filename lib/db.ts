@@ -1,6 +1,16 @@
 import { Pool } from "@db/postgres";
 import type {
+  BarcodeAssignment,
+  BarcodeAssignmentRow,
+  BarcodeKit,
+  BarcodeKitRow,
+  BarcodeSequence,
+  BarcodeSequenceRow,
   CreateUserData,
+  PlateLayout,
+  PlateLayoutRow,
+  Primer,
+  PrimerRow,
   Sample,
   SampleRow,
   SequencingRequest,
@@ -9,6 +19,8 @@ import type {
   SessionRow,
   User,
   UserRow,
+  WellAssignment,
+  WellAssignmentRow,
 } from "./types.ts";
 
 // 创建带有正确 TLS 配置的数据库连接池
@@ -454,22 +466,34 @@ class Database {
     );
     const total = Number(countResult.rows[0]?.count || 0);
 
-    // 获取分页数据
+    // 获取分页数据（包含样品数和申请人姓名）
     const offset = (pagination.page - 1) * pagination.limit;
     values.push(pagination.limit, offset);
 
-    const result = await client.queryObject<SequencingRequestRow>(
+    const result = await client.queryObject<
+      SequencingRequestRow & { sample_count: string; user_name: string }
+    >(
       `
-      SELECT * FROM sequencing_requests 
+      SELECT r.*, 
+             COALESCE(COUNT(s.id), 0)::text as sample_count,
+             u.name as user_name
+      FROM sequencing_requests r
+      LEFT JOIN samples s ON r.id = s.request_id
+      LEFT JOIN users u ON r.user_id = u.id
       ${whereClause}
-      ORDER BY created_at DESC
+      GROUP BY r.id, u.name
+      ORDER BY r.created_at DESC
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `,
       values,
     );
 
     return {
-      requests: result.rows.map((row) => this.mapRequestRowToRequest(row)),
+      requests: result.rows.map((row) => ({
+        ...this.mapRequestRowToRequest(row),
+        sampleCount: parseInt(row.sample_count) || 0,
+        userName: row.user_name,
+      })),
       total,
     };
   }
@@ -651,6 +675,20 @@ class Database {
     return this.mapSampleRowToSample(result.rows[0]);
   }
 
+  async getSampleByBarcode(barcode: string): Promise<Sample | null> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<SampleRow>(
+      `
+      SELECT * FROM samples WHERE barcode = $1
+    `,
+      [barcode],
+    );
+
+    if (result.rows.length === 0) return null;
+    return this.mapSampleRowToSample(result.rows[0]);
+  }
+
   async getSamplesByRequestId(requestId: string): Promise<Sample[]> {
     using client = await this.pool.connect();
 
@@ -673,6 +711,7 @@ class Database {
       requestId?: string;
     },
     pagination: { page: number; limit: number },
+    sort?: { column: string; direction: "ASC" | "DESC" },
   ): Promise<{
     samples: Sample[];
     total: number;
@@ -685,19 +724,19 @@ class Database {
 
     // 申请 ID 过滤
     if (filters.requestId) {
-      conditions.push(`request_id = $${paramIndex++}`);
+      conditions.push(`s.request_id = $${paramIndex++}`);
       values.push(filters.requestId);
     }
 
     // 样品类型过滤
     if (filters.type) {
-      conditions.push(`type = $${paramIndex++}`);
+      conditions.push(`s.type = $${paramIndex++}`);
       values.push(filters.type);
     }
 
     // QC 状态过滤
     if (filters.qcStatus) {
-      conditions.push(`qc_status = $${paramIndex++}`);
+      conditions.push(`s.qc_status = $${paramIndex++}`);
       values.push(filters.qcStatus);
     }
 
@@ -707,27 +746,56 @@ class Database {
 
     // 获取总数
     const countResult = await client.queryObject<{ count: number }>(
-      `SELECT COUNT(*) as count FROM samples ${whereClause}`,
+      `SELECT COUNT(*) as count FROM samples s ${whereClause}`,
       values,
     );
     const total = Number(countResult.rows[0]?.count || 0);
 
-    // 获取分页数据
+    // 构建排序子句
+    const validColumns: Record<string, string> = {
+      name: "s.name",
+      type: "s.type",
+      qcStatus: "s.qc_status",
+      createdAt: "s.created_at",
+      userName: "u.name",
+    };
+    const sortColumn = sort?.column && validColumns[sort.column]
+      ? validColumns[sort.column]
+      : "s.created_at";
+    const sortDirection = sort?.direction === "ASC" ? "ASC" : "DESC";
+    const orderByClause = `ORDER BY ${sortColumn} ${sortDirection}`;
+
+    // 获取分页数据（包含提交人姓名）
     const offset = (pagination.page - 1) * pagination.limit;
     values.push(pagination.limit, offset);
 
-    const result = await client.queryObject<SampleRow>(
+    const result = await client.queryObject<
+      SampleRow & { user_name: string }
+    >(
       `
-      SELECT * FROM samples 
+      SELECT s.*, u.name as user_name
+      FROM samples s
+      LEFT JOIN sequencing_requests r ON s.request_id = r.id
+      LEFT JOIN users u ON r.user_id = u.id
       ${whereClause}
-      ORDER BY created_at ASC
+      ${orderByClause}
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `,
       values,
     );
 
+    // 为每个样品加载关联的引物
+    const samplesWithPrimers = await Promise.all(
+      result.rows.map(async (row) => {
+        const sample = this.mapSampleRowToSample(row);
+        sample.primerIds = await this.getSamplePrimers(sample.id);
+        sample.userName = row.user_name;
+        return sample;
+      }),
+    );
+
     return {
-      samples: result.rows.map((row) => this.mapSampleRowToSample(row)),
+      samples: samplesWithPrimers,
       total,
     };
   }
@@ -812,6 +880,541 @@ class Database {
       `
       DELETE FROM samples WHERE id = $1
     `,
+      [id],
+    );
+
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Sample-Primer association methods
+  async assignPrimerToSample(
+    sampleId: string,
+    primerId: string,
+  ): Promise<boolean> {
+    using client = await this.pool.connect();
+
+    try {
+      // 插入新的引物关联（支持多个引物）
+      await client.queryObject(
+        `
+        INSERT INTO sample_primers (sample_id, primer_id)
+        VALUES ($1, $2)
+        ON CONFLICT (sample_id, primer_id) DO NOTHING
+      `,
+        [sampleId, primerId],
+      );
+
+      return true;
+    } catch (error) {
+      console.error("分配引物失败:", error);
+      return false;
+    }
+  }
+
+  async clearSamplePrimers(sampleId: string): Promise<boolean> {
+    using client = await this.pool.connect();
+
+    try {
+      await client.queryObject(
+        `DELETE FROM sample_primers WHERE sample_id = $1`,
+        [sampleId],
+      );
+
+      return true;
+    } catch (error) {
+      console.error("清除引物关联失败:", error);
+      return false;
+    }
+  }
+
+  async getSamplePrimers(sampleId: string): Promise<string[]> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<{ primer_id: string }>(
+      `
+      SELECT primer_id FROM sample_primers WHERE sample_id = $1
+    `,
+      [sampleId],
+    );
+
+    return result.rows.map((row) => row.primer_id);
+  }
+
+  async removePrimerFromSample(
+    sampleId: string,
+    primerId: string,
+  ): Promise<boolean> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject(
+      `
+      DELETE FROM sample_primers 
+      WHERE sample_id = $1 AND primer_id = $2
+    `,
+      [sampleId, primerId],
+    );
+
+    return (result.rowCount || 0) > 0;
+  }
+
+  // ============================================================================
+  // Primer methods
+  // ============================================================================
+
+  private mapPrimerRowToPrimer(row: PrimerRow): Primer {
+    return {
+      id: row.id,
+      name: row.name,
+      sequence: row.sequence,
+      description: row.description ?? undefined,
+      tm: row.tm ?? undefined,
+      gcContent: row.gc_content ?? undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  async createPrimer(data: {
+    name: string;
+    sequence: string;
+    description?: string;
+    tm?: number;
+    gcContent?: number;
+  }): Promise<Primer> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<PrimerRow>(
+      `
+      INSERT INTO primers (name, sequence, description, tm, gc_content)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `,
+      [
+        data.name,
+        data.sequence,
+        data.description ?? null,
+        data.tm ?? null,
+        data.gcContent ?? null,
+      ],
+    );
+
+    return this.mapPrimerRowToPrimer(result.rows[0]);
+  }
+
+  async getPrimers(): Promise<Primer[]> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<PrimerRow>(
+      `
+      SELECT * FROM primers 
+      ORDER BY name ASC
+    `,
+    );
+
+    return result.rows.map((row) => this.mapPrimerRowToPrimer(row));
+  }
+
+  async getPrimerById(id: string): Promise<Primer | null> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<PrimerRow>(
+      `
+      SELECT * FROM primers WHERE id = $1
+    `,
+      [id],
+    );
+
+    if (result.rows.length === 0) return null;
+    return this.mapPrimerRowToPrimer(result.rows[0]);
+  }
+
+  async getPrimerByName(name: string): Promise<Primer | null> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<PrimerRow>(
+      `
+      SELECT * FROM primers WHERE name = $1
+    `,
+      [name],
+    );
+
+    if (result.rows.length === 0) return null;
+    return this.mapPrimerRowToPrimer(result.rows[0]);
+  }
+
+  async updatePrimer(
+    id: string,
+    data: {
+      name?: string;
+      sequence?: string;
+      description?: string;
+      tm?: number;
+      gcContent?: number;
+    },
+  ): Promise<Primer> {
+    using client = await this.pool.connect();
+
+    const updates: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
+
+    if (data.name !== undefined) {
+      updates.push(`name = $${paramIndex++}`);
+      values.push(data.name);
+    }
+    if (data.sequence !== undefined) {
+      updates.push(`sequence = $${paramIndex++}`);
+      values.push(data.sequence);
+    }
+    if (data.description !== undefined) {
+      updates.push(`description = $${paramIndex++}`);
+      values.push(data.description);
+    }
+    if (data.tm !== undefined) {
+      updates.push(`tm = $${paramIndex++}`);
+      values.push(data.tm);
+    }
+    if (data.gcContent !== undefined) {
+      updates.push(`gc_content = $${paramIndex++}`);
+      values.push(data.gcContent);
+    }
+
+    if (updates.length === 0) {
+      // No updates, just return current primer
+      const current = await this.getPrimerById(id);
+      if (!current) throw new Error("Primer not found");
+      return current;
+    }
+
+    values.push(id);
+
+    const result = await client.queryObject<PrimerRow>(
+      `
+      UPDATE primers 
+      SET ${updates.join(", ")}, updated_at = NOW()
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `,
+      values,
+    );
+
+    if (result.rows.length === 0) {
+      throw new Error("Primer not found");
+    }
+
+    return this.mapPrimerRowToPrimer(result.rows[0]);
+  }
+
+  async deletePrimer(id: string): Promise<boolean> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject(
+      `
+      DELETE FROM primers WHERE id = $1
+    `,
+      [id],
+    );
+
+    return (result.rowCount || 0) > 0;
+  }
+
+  // ============================================================================
+  // Plate Layout methods
+  // ============================================================================
+
+  private mapPlateLayoutRowToPlateLayout(row: PlateLayoutRow): PlateLayout {
+    return {
+      id: row.id,
+      requestId: row.request_id,
+      plateName: row.plate_name,
+      plateType: row.plate_type,
+      createdBy: row.created_by,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  private mapWellAssignmentRowToWellAssignment(
+    row: WellAssignmentRow,
+  ): WellAssignment {
+    return {
+      id: row.id,
+      plateLayoutId: row.plate_layout_id,
+      sampleId: row.sample_id,
+      wellPosition: row.well_position,
+      status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  async createPlateLayout(data: {
+    requestId: string;
+    plateName: string;
+    plateType: string;
+    createdBy: string;
+  }): Promise<PlateLayout> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<PlateLayoutRow>(
+      `
+      INSERT INTO plate_layouts (request_id, plate_name, plate_type, created_by)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *
+    `,
+      [data.requestId, data.plateName, data.plateType, data.createdBy],
+    );
+
+    return this.mapPlateLayoutRowToPlateLayout(result.rows[0]);
+  }
+
+  async getPlateLayoutsByRequestId(
+    requestId: string,
+  ): Promise<PlateLayout[]> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<PlateLayoutRow>(
+      `
+      SELECT * FROM plate_layouts 
+      WHERE request_id = $1 
+      ORDER BY created_at DESC
+    `,
+      [requestId],
+    );
+
+    return result.rows.map((row) => this.mapPlateLayoutRowToPlateLayout(row));
+  }
+
+  async getPlateLayoutById(id: string): Promise<PlateLayout | null> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<PlateLayoutRow>(
+      `
+      SELECT * FROM plate_layouts WHERE id = $1
+    `,
+      [id],
+    );
+
+    if (result.rows.length === 0) return null;
+    return this.mapPlateLayoutRowToPlateLayout(result.rows[0]);
+  }
+
+  async deletePlateLayout(id: string): Promise<boolean> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject(
+      `
+      DELETE FROM plate_layouts WHERE id = $1
+    `,
+      [id],
+    );
+
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Well Assignment methods
+
+  async createWellAssignment(data: {
+    plateLayoutId: string;
+    sampleId: string;
+    wellPosition: string;
+  }): Promise<WellAssignment> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<WellAssignmentRow>(
+      `
+      INSERT INTO well_assignments (plate_layout_id, sample_id, well_position)
+      VALUES ($1, $2, $3)
+      RETURNING *
+    `,
+      [data.plateLayoutId, data.sampleId, data.wellPosition],
+    );
+
+    return this.mapWellAssignmentRowToWellAssignment(result.rows[0]);
+  }
+
+  async getWellAssignmentsByPlateId(
+    plateLayoutId: string,
+  ): Promise<WellAssignment[]> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<WellAssignmentRow>(
+      `
+      SELECT * FROM well_assignments 
+      WHERE plate_layout_id = $1 
+      ORDER BY well_position ASC
+    `,
+      [plateLayoutId],
+    );
+
+    return result.rows.map((row) =>
+      this.mapWellAssignmentRowToWellAssignment(row)
+    );
+  }
+
+  async updateWellAssignmentStatus(
+    id: string,
+    status: "pending" | "loaded" | "sequenced" | "failed",
+  ): Promise<WellAssignment> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<WellAssignmentRow>(
+      `
+      UPDATE well_assignments 
+      SET status = $1, updated_at = NOW()
+      WHERE id = $2
+      RETURNING *
+    `,
+      [status, id],
+    );
+
+    if (result.rows.length === 0) {
+      throw new Error("Well assignment not found");
+    }
+
+    return this.mapWellAssignmentRowToWellAssignment(result.rows[0]);
+  }
+
+  async deleteWellAssignment(id: string): Promise<boolean> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject(
+      `
+      DELETE FROM well_assignments WHERE id = $1
+    `,
+      [id],
+    );
+
+    return (result.rowCount || 0) > 0;
+  }
+
+  // ============================================================================
+  // Barcode methods
+  // ============================================================================
+
+  private mapBarcodeKitRowToBarcodeKit(row: BarcodeKitRow): BarcodeKit {
+    return {
+      id: row.id,
+      name: row.name,
+      manufacturer: row.manufacturer,
+      platform: row.platform,
+      indexType: row.index_type,
+      description: row.description,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  private mapBarcodeSequenceRowToBarcodeSequence(
+    row: BarcodeSequenceRow,
+  ): BarcodeSequence {
+    return {
+      id: row.id,
+      kitId: row.kit_id,
+      indexName: row.index_name,
+      sequence: row.sequence,
+      position: row.position,
+      createdAt: row.created_at,
+    };
+  }
+
+  private mapBarcodeAssignmentRowToBarcodeAssignment(
+    row: BarcodeAssignmentRow,
+  ): BarcodeAssignment {
+    return {
+      id: row.id,
+      sampleId: row.sample_id,
+      kitId: row.kit_id,
+      i7IndexId: row.i7_index_id,
+      i5IndexId: row.i5_index_id,
+      assignedBy: row.assigned_by,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  async getBarcodeKits(): Promise<BarcodeKit[]> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<BarcodeKitRow>(
+      `SELECT * FROM barcode_kits ORDER BY name ASC`,
+    );
+
+    return result.rows.map((row) => this.mapBarcodeKitRowToBarcodeKit(row));
+  }
+
+  async getBarcodeKitById(id: string): Promise<BarcodeKit | null> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<BarcodeKitRow>(
+      `SELECT * FROM barcode_kits WHERE id = $1`,
+      [id],
+    );
+
+    if (result.rows.length === 0) return null;
+    return this.mapBarcodeKitRowToBarcodeKit(result.rows[0]);
+  }
+
+  async getBarcodeSequencesByKitId(kitId: string): Promise<BarcodeSequence[]> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<BarcodeSequenceRow>(
+      `SELECT * FROM barcode_sequences WHERE kit_id = $1 ORDER BY position ASC`,
+      [kitId],
+    );
+
+    return result.rows.map((row) =>
+      this.mapBarcodeSequenceRowToBarcodeSequence(row)
+    );
+  }
+
+  async createBarcodeAssignment(data: {
+    sampleId: string;
+    kitId: string;
+    i7IndexId?: string;
+    i5IndexId?: string;
+    assignedBy: string;
+  }): Promise<BarcodeAssignment> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<BarcodeAssignmentRow>(
+      `
+      INSERT INTO barcode_assignments 
+        (sample_id, kit_id, i7_index_id, i5_index_id, assigned_by)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `,
+      [
+        data.sampleId,
+        data.kitId,
+        data.i7IndexId ?? null,
+        data.i5IndexId ?? null,
+        data.assignedBy,
+      ],
+    );
+
+    return this.mapBarcodeAssignmentRowToBarcodeAssignment(result.rows[0]);
+  }
+
+  async getBarcodeAssignmentBySampleId(
+    sampleId: string,
+  ): Promise<BarcodeAssignment | null> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject<BarcodeAssignmentRow>(
+      `SELECT * FROM barcode_assignments WHERE sample_id = $1`,
+      [sampleId],
+    );
+
+    if (result.rows.length === 0) return null;
+    return this.mapBarcodeAssignmentRowToBarcodeAssignment(result.rows[0]);
+  }
+
+  async deleteBarcodeAssignment(id: string): Promise<boolean> {
+    using client = await this.pool.connect();
+
+    const result = await client.queryObject(
+      `DELETE FROM barcode_assignments WHERE id = $1`,
       [id],
     );
 

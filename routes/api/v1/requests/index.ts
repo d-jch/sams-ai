@@ -47,8 +47,9 @@ export const handler = define.handlers({
 
       const db = getDatabase();
 
-      // 管理员和实验室主管可以看所有申请，其他用户只能看自己的
-      const userId = (user.role === "admin" || user.role === "lab_manager")
+      // 管理员、实验室主管和技术员可以看所有申请，研究员只能看自己的
+      const userId = (user.role === "admin" || user.role === "lab_manager" ||
+          user.role === "technician")
         ? null
         : user.id;
 
@@ -99,7 +100,14 @@ export const handler = define.handlers({
       }
 
       // 验证测序类型
-      const validTypes = ["WGS", "WES", "RNA-seq", "amplicon", "ChIP-seq"];
+      const validTypes = [
+        "sanger",
+        "WGS",
+        "WES",
+        "RNA-seq",
+        "amplicon",
+        "ChIP-seq",
+      ];
       if (!validTypes.includes(body.sequencingType)) {
         return Response.json(
           { error: "无效的测序类型" },

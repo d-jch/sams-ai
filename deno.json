@@ -14,8 +14,6 @@
     "test:routes": "deno test -A --filter routes",
     "test:api": "deno test -A --filter api",
     "db:migrate": "deno run -A scripts/migrate.ts",
-    "db:migrate:core": "deno run -A scripts/migrations/add-core-tables.ts",
-    "db:migrate:rollback": "deno run -A scripts/migrations/add-core-tables.ts down",
     "db:seed": "deno run -A scripts/seed.ts",
     "db:reset": "deno run -A scripts/reset.ts",
     "db:test": "deno run -A scripts/test-connection.ts"

@@ -27,6 +27,26 @@ async function reset() {
     using client = await pool.connect();
 
     // Drop tables in reverse order of dependencies
+    await client.queryObject("DROP TABLE IF EXISTS sample_primers CASCADE;");
+    console.log("  ✅ Dropped table: sample_primers");
+
+    await client.queryObject(
+      "DROP TABLE IF EXISTS barcode_assignments CASCADE;",
+    );
+    console.log("  ✅ Dropped table: barcode_assignments");
+
+    await client.queryObject("DROP TABLE IF EXISTS barcode_sequences CASCADE;");
+    console.log("  ✅ Dropped table: barcode_sequences");
+
+    await client.queryObject("DROP TABLE IF EXISTS barcode_kits CASCADE;");
+    console.log("  ✅ Dropped table: barcode_kits");
+
+    await client.queryObject("DROP TABLE IF EXISTS primers CASCADE;");
+    console.log("  ✅ Dropped table: primers");
+
+    await client.queryObject("DROP TABLE IF EXISTS plate_layouts CASCADE;");
+    console.log("  ✅ Dropped table: plate_layouts");
+
     await client.queryObject(
       "DROP TABLE IF EXISTS request_status_history CASCADE;",
     );

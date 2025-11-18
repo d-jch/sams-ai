@@ -16,9 +16,6 @@ export const handler = define.handlers({
     const { id } = ctx.params;
 
     try {
-      const statusCheck = await canModifyRequestStatus(user, id);
-      if (statusCheck !== true) return statusCheck;
-
       const body = await ctx.req.json();
 
       // 验证状态
@@ -35,6 +32,10 @@ export const handler = define.handlers({
           { status: 400 },
         );
       }
+
+      // 检查权限（传入目标状态）
+      const statusCheck = await canModifyRequestStatus(user, id, body.status);
+      if (statusCheck !== true) return statusCheck;
 
       const db = getDatabase();
       const updated = await db.updateRequestStatus(

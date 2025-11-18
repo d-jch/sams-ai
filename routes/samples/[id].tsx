@@ -13,6 +13,10 @@ export const handler = define.handlers({
 
     const { id } = ctx.params;
 
+    // 获取 returnTo 参数，用于判断从哪里进入
+    const url = new URL(ctx.req.url);
+    const returnTo = url.searchParams.get("returnTo") || "request"; // 默认返回申请详情
+
     try {
       // 获取样品详情
       const response = await fetch(
@@ -26,16 +30,16 @@ export const handler = define.handlers({
 
       if (!response.ok) {
         if (response.status === 404) {
-          return { data: { error: "样品不存在" } };
+          return { data: { error: "样品不存在", returnTo } };
         }
         throw new Error("获取样品详情失败");
       }
 
       const result = await response.json();
-      return { data: { sample: result.data } };
+      return { data: { sample: result.data, returnTo } };
     } catch (error) {
       console.error("获取样品详情失败:", error);
-      return { data: { error: "获取样品详情失败" } };
+      return { data: { error: "获取样品详情失败", returnTo } };
     }
   },
 
@@ -49,6 +53,10 @@ export const handler = define.handlers({
     }
 
     const { id } = ctx.params;
+
+    // 获取 returnTo 参数
+    const url = new URL(ctx.req.url);
+    const returnTo = url.searchParams.get("returnTo") || "request";
 
     try {
       const formData = await ctx.req.formData();
@@ -101,15 +109,21 @@ export const handler = define.handlers({
           data: {
             sample: sampleResult.data,
             error: error.error || "更新样品失败",
+            returnTo,
           },
         };
       }
 
       const result = await response.json();
-      // 更新成功，重定向回列表或保持在当前页
+
+      // 根据 returnTo 参数决定重定向位置
+      const redirectUrl = returnTo === "list"
+        ? `/samples` // 返回样品管理列表（所有样品）
+        : `/requests/${result.data.requestId}`; // 返回申请详情页
+
       return new Response(null, {
         status: 302,
-        headers: { Location: `/samples?requestId=${result.data.requestId}` },
+        headers: { Location: redirectUrl },
       });
     } catch (error) {
       console.error("更新样品失败:", error);
@@ -127,6 +141,7 @@ export const handler = define.handlers({
         data: {
           sample: sampleResult.data,
           error: "更新样品失败，请稍后重试",
+          returnTo,
         },
       };
     }
@@ -135,16 +150,36 @@ export const handler = define.handlers({
 
 export default define.page<typeof handler>(function EditSamplePage(props) {
   const user = props.state.user;
-  const data = props.data as { sample?: Sample; error?: string };
+  const data = props.data as {
+    sample?: Sample;
+    error?: string;
+    returnTo?: string;
+  };
   const sample = data.sample;
   const error = data.error;
+  const returnTo = data.returnTo || "request";
+
+  // 根据 returnTo 参数生成返回链接和文本
+  const getReturnUrl = () => {
+    if (!sample) return "/requests";
+    return returnTo === "list"
+      ? `/samples` // 返回样品管理列表（所有样品）
+      : `/requests/${sample.requestId}`; // 返回申请详情页
+  };
+
+  const getReturnText = () => {
+    return returnTo === "list" ? "返回列表" : "返回申请";
+  };
 
   // 样品类型映射
   const typeMap: Record<SampleType, string> = {
     "DNA": "DNA",
     "RNA": "RNA",
-    "Protein": "蛋白质",
     "Cell": "细胞",
+    "PCR产物(已纯化)": "PCR产物(已纯化)",
+    "PCR产物(未纯化)": "PCR产物(未纯化)",
+    "菌株": "菌株",
+    "质粒": "质粒",
   };
 
   // QC状态映射
@@ -184,9 +219,7 @@ export default define.page<typeof handler>(function EditSamplePage(props) {
       <div class="container mx-auto p-6">
         <div class="flex items-center mb-6">
           <a
-            href={sample
-              ? `/samples?requestId=${sample.requestId}`
-              : "/samples"}
+            href={getReturnUrl()}
             class="btn btn-ghost btn-sm mr-4"
           >
             <svg
@@ -201,7 +234,7 @@ export default define.page<typeof handler>(function EditSamplePage(props) {
                 clip-rule="evenodd"
               />
             </svg>
-            返回样品列表
+            {getReturnText()}
           </a>
           <h1 class="text-3xl font-bold">编辑样品</h1>
         </div>
@@ -377,7 +410,7 @@ export default define.page<typeof handler>(function EditSamplePage(props) {
                 {/* 提交按钮 */}
                 <div class="card-actions justify-end pt-4">
                   <a
-                    href={`/samples?requestId=${sample.requestId}`}
+                    href={getReturnUrl()}
                     class="btn btn-ghost"
                   >
                     取消

@@ -1,4 +1,5 @@
 import { define } from "../../utils.ts";
+import RequestForm from "../../islands/RequestForm.tsx";
 
 export const handler = define.handlers({
   GET(ctx) {
@@ -136,99 +137,8 @@ export default define.page<typeof handler>(function NewRequestPage(props) {
           </div>
         )}
 
-        {/* 申请表单 */}
-        <div class="card bg-base-100 shadow-xl">
-          <div class="card-body">
-            <form method="POST" class="space-y-4">
-              {/* 项目名称 */}
-              <label class="form-control">
-                <div class="label">
-                  <span class="label-text font-semibold">
-                    项目名称 <span class="text-error">*</span>
-                  </span>
-                </div>
-                <input
-                  type="text"
-                  name="projectName"
-                  placeholder="请输入项目名称"
-                  class="input input-bordered"
-                  required
-                />
-              </label>
-
-              {/* 测序类型 */}
-              <label class="form-control">
-                <div class="label">
-                  <span class="label-text font-semibold">
-                    测序类型 <span class="text-error">*</span>
-                  </span>
-                </div>
-                <select
-                  name="sequencingType"
-                  class="select select-bordered"
-                  required
-                >
-                  <option value="">请选择测序类型</option>
-                  <option value="WGS">全基因组测序 (WGS)</option>
-                  <option value="WES">外显子测序 (WES)</option>
-                  <option value="RNA-seq">RNA测序 (RNA-seq)</option>
-                  <option value="amplicon">扩增子测序</option>
-                  <option value="ChIP-seq">ChIP测序 (ChIP-seq)</option>
-                </select>
-              </label>
-
-              {/* 优先级 */}
-              <label class="form-control">
-                <div class="label">
-                  <span class="label-text font-semibold">优先级</span>
-                </div>
-                <select name="priority" class="select select-bordered">
-                  <option value="normal">正常</option>
-                  <option value="low">低</option>
-                  <option value="high">高</option>
-                  <option value="urgent">紧急</option>
-                </select>
-              </label>
-
-              {/* 预估成本 */}
-              <label class="form-control">
-                <div class="label">
-                  <span class="label-text font-semibold">预估成本 (元)</span>
-                </div>
-                <input
-                  type="number"
-                  name="estimatedCost"
-                  placeholder="请输入预估成本"
-                  class="input input-bordered"
-                  min="0"
-                  step="0.01"
-                />
-              </label>
-
-              {/* 备注 */}
-              <label class="form-control">
-                <div class="label">
-                  <span class="label-text font-semibold">备注</span>
-                </div>
-                <textarea
-                  name="notes"
-                  placeholder="请输入备注信息"
-                  class="textarea textarea-bordered h-24"
-                />
-              </label>
-
-              {/* 提交按钮 */}
-              <div class="card-actions justify-end pt-4">
-                <a href="/requests" class="btn btn-ghost">
-                  取消
-                </a>
-                <button type="submit" class="btn btn-primary">
-                  创建申请
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        {/* 申请表单 - 使用 Island 实现动态交互 */}
+        <RequestForm error={error} />
       </div>
     </div>
   );

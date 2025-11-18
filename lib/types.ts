@@ -6,6 +6,7 @@
 
 export type UserRole = "researcher" | "technician" | "lab_manager" | "admin";
 export type SequencingType =
+  | "sanger"
   | "WGS"
   | "WES"
   | "RNA-seq"
@@ -17,8 +18,15 @@ export type RequestStatus =
   | "in_progress"
   | "completed"
   | "cancelled";
-export type PriorityLevel = "low" | "normal" | "high" | "urgent";
-export type SampleType = "DNA" | "RNA" | "Protein" | "Cell";
+export type PriorityLevel = "normal" | "urgent";
+export type SampleType =
+  | "DNA"
+  | "RNA"
+  | "Cell"
+  | "PCR产物(已纯化)"
+  | "PCR产物(未纯化)"
+  | "菌株"
+  | "质粒";
 export type QCStatus = "pending" | "passed" | "failed" | "retest";
 
 // =============================================================================
@@ -125,6 +133,8 @@ export interface SequencingRequest {
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
+  sampleCount?: number; // 样品数量（在列表查询时返回）
+  userName?: string; // 申请人姓名（在列表查询时返回）
 }
 
 export interface SequencingRequestRow {
@@ -165,8 +175,10 @@ export interface Sample {
   qcStatus: QCStatus;
   storageLocation?: string;
   notes?: string;
+  primerIds?: string[]; // 关联的引物 ID 列表
   createdAt: Date;
   updatedAt: Date;
+  userName?: string; // 提交人姓名（在列表查询时返回）
 }
 
 export interface SampleRow {
@@ -252,4 +264,153 @@ export interface SampleFilterParams {
   type?: SampleType;
   qcStatus?: QCStatus;
   requestId?: string;
+}
+
+// =============================================================================
+// BUSINESS TYPES - Sanger Sequencing (Primers & Plates)
+// =============================================================================
+
+export interface Primer {
+  id: string;
+  name: string;
+  sequence: string;
+  description?: string;
+  tm?: number; // Melting temperature (°C)
+  gcContent?: number; // GC content (%)
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PrimerRow {
+  id: string;
+  name: string;
+  sequence: string;
+  description?: string;
+  tm?: number;
+  gc_content?: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface SamplePrimer {
+  id: string;
+  sampleId: string;
+  primerId: string;
+  createdAt: Date;
+}
+
+export interface SamplePrimerRow {
+  id: string;
+  sample_id: string;
+  primer_id: string;
+  created_at: Date;
+}
+
+export interface PlateLayout {
+  id: string;
+  requestId: string;
+  plateName: string;
+  plateType: string; // e.g., "96-well"
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PlateLayoutRow {
+  id: string;
+  request_id: string;
+  plate_name: string;
+  plate_type: string;
+  created_by: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export type WellPosition = string; // e.g., "A01", "B02", etc. (A-H, 01-12 for 96-well)
+export type WellStatus = "pending" | "loaded" | "sequenced" | "failed";
+
+export interface WellAssignment {
+  id: string;
+  plateLayoutId: string;
+  sampleId: string;
+  wellPosition: WellPosition;
+  status: WellStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface WellAssignmentRow {
+  id: string;
+  plate_layout_id: string;
+  sample_id: string;
+  well_position: WellPosition;
+  status: WellStatus;
+  created_at: Date;
+  updated_at: Date;
+}
+
+// =============================================================================
+// BUSINESS TYPES - NGS Barcode Management
+// =============================================================================
+
+export interface BarcodeKit {
+  id: string;
+  name: string;
+  manufacturer: string;
+  platform: string; // e.g., "Illumina", "MGI"
+  indexType: string; // e.g., "single", "dual"
+  description?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface BarcodeKitRow {
+  id: string;
+  name: string;
+  manufacturer: string;
+  platform: string;
+  index_type: string;
+  description?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface BarcodeSequence {
+  id: string;
+  kitId: string;
+  indexName: string; // e.g., "i7_01", "i5_01"
+  sequence: string;
+  position: number; // Position in the kit
+  createdAt: Date;
+}
+
+export interface BarcodeSequenceRow {
+  id: string;
+  kit_id: string;
+  index_name: string;
+  sequence: string;
+  position: number;
+  created_at: Date;
+}
+
+export interface BarcodeAssignment {
+  id: string;
+  sampleId: string;
+  kitId: string;
+  i7IndexId?: string; // Reference to barcode_sequences.id
+  i5IndexId?: string; // Reference to barcode_sequences.id (for dual indexing)
+  assignedBy: string; // User ID of the technician who assigned
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface BarcodeAssignmentRow {
+  id: string;
+  sample_id: string;
+  kit_id: string;
+  i7_index_id?: string;
+  i5_index_id?: string;
+  assigned_by: string;
+  created_at: Date;
+  updated_at: Date;
 }

@@ -157,25 +157,78 @@ export async function canModifyRequest(
 
 /**
  * 检查用户是否可以修改申请状态
+ * 根据目标状态的不同，需要不同的权限：
+ * - pending → approved: lab_manager 或 admin
+ * - approved → in_progress: technician 或以上
+ * - in_progress → completed: technician 或以上
+ * - 任意状态 → cancelled: request owner 或 lab_manager/admin
  * @returns true 如果可以修改，否则返回错误响应
  */
 export async function canModifyRequestStatus(
   user: User,
   requestId: string,
+  targetStatus: string,
 ): Promise<true | Response> {
-  // 只有实验室主管和管理员可以修改状态
-  if (user.role !== "admin" && user.role !== "lab_manager") {
-    return Response.json(
-      { error: "只有实验室主管和管理员可以修改申请状态" },
-      { status: 403 },
-    );
-  }
-
   const db = getDatabase();
   const request = await db.getRequestById(requestId);
 
   if (!request) {
     return Response.json({ error: "申请不存在" }, { status: 404 });
+  }
+
+  // 根据目标状态检查权限
+  switch (targetStatus) {
+    case "approved":
+      // 只有实验室主管和管理员可以批准申请
+      if (user.role !== "admin" && user.role !== "lab_manager") {
+        return Response.json(
+          { error: "只有实验室主管和管理员可以批准申请" },
+          { status: 403 },
+        );
+      }
+      break;
+
+    case "in_progress":
+      // 技术员及以上可以将申请状态改为进行中
+      if (!hasRole(user, "technician")) {
+        return Response.json(
+          { error: "只有技术员及以上角色可以开始处理申请" },
+          { status: 403 },
+        );
+      }
+      break;
+
+    case "completed":
+      // 技术员及以上可以完成申请
+      if (!hasRole(user, "technician")) {
+        return Response.json(
+          { error: "只有技术员及以上角色可以完成申请" },
+          { status: 403 },
+        );
+      }
+      break;
+
+    case "cancelled": {
+      // 申请创建者、实验室主管或管理员可以取消申请
+      const isOwner = request.userId === user.id;
+      const isManager = user.role === "lab_manager" || user.role === "admin";
+      if (!isOwner && !isManager) {
+        return Response.json(
+          { error: "只有申请创建者、实验室主管或管理员可以取消申请" },
+          { status: 403 },
+        );
+      }
+      break;
+    }
+
+    default:
+      // 其他状态变更只允许管理员和实验室主管
+      if (user.role !== "admin" && user.role !== "lab_manager") {
+        return Response.json(
+          { error: "只有实验室主管和管理员可以修改申请状态" },
+          { status: 403 },
+        );
+      }
   }
 
   return true;
@@ -254,6 +307,27 @@ export function canModifyQCStatus(user: User): true | Response {
 
   return Response.json(
     { error: "只有技术员、实验室主管和管理员可以修改 QC 状态" },
+    { status: 403 },
+  );
+}
+
+/**
+ * 检查用户是否可以分配 Barcode
+ * Barcode 分配是技术员的专属操作，只有技术员及以上角色可以执行
+ * @returns true 如果可以分配，否则返回错误响应
+ */
+export function canAssignBarcode(user: User): true | Response {
+  // 只有技术员、实验室主管和管理员可以分配 Barcode
+  if (
+    user.role === "admin" ||
+    user.role === "lab_manager" ||
+    user.role === "technician"
+  ) {
+    return true;
+  }
+
+  return Response.json(
+    { error: "只有技术员、实验室主管和管理员可以分配 Barcode" },
     { status: 403 },
   );
 }

@@ -7,22 +7,53 @@
 -- =============================================================================
 
 -- User role types
-CREATE TYPE user_role AS ENUM ('researcher', 'technician', 'lab_manager', 'admin');
+DO $$ BEGIN
+    CREATE TYPE user_role AS ENUM ('researcher', 'technician', 'lab_manager', 'admin');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Sequencing types
-CREATE TYPE sequencing_type AS ENUM ('WGS', 'WES', 'RNA-seq', 'amplicon', 'ChIP-seq');
+DO $$ BEGIN
+    CREATE TYPE sequencing_type AS ENUM ('sanger', 'WGS', 'WES', 'RNA-seq', 'amplicon', 'ChIP-seq');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Request status types
-CREATE TYPE request_status AS ENUM ('pending', 'approved', 'in_progress', 'completed', 'cancelled');
+DO $$ BEGIN
+    CREATE TYPE request_status AS ENUM ('pending', 'approved', 'in_progress', 'completed', 'cancelled');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Priority levels
-CREATE TYPE priority_level AS ENUM ('low', 'normal', 'high', 'urgent');
+DO $$ BEGIN
+    CREATE TYPE priority_level AS ENUM ('normal', 'urgent');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Sample types
-CREATE TYPE sample_type AS ENUM ('DNA', 'RNA', 'Protein', 'Cell');
+DO $$ BEGIN
+    CREATE TYPE sample_type AS ENUM ('DNA', 'RNA', 'Cell', 'PCR产物(已纯化)', 'PCR产物(未纯化)', '菌株', '质粒');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- QC status types
-CREATE TYPE qc_status AS ENUM ('pending', 'passed', 'failed', 'retest');
+DO $$ BEGIN
+    CREATE TYPE qc_status AS ENUM ('pending', 'passed', 'failed', 'retest');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Well status types (for 96-well plates)
+DO $$ BEGIN
+    CREATE TYPE well_status AS ENUM ('pending', 'loaded', 'sequenced', 'failed');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- =============================================================================
 -- CORE TABLES
@@ -132,6 +163,155 @@ CREATE INDEX IF NOT EXISTS idx_status_history_request_id ON request_status_histo
 CREATE INDEX IF NOT EXISTS idx_status_history_created_at ON request_status_history(created_at);
 
 -- =============================================================================
+-- SANGER SEQUENCING TABLES
+-- =============================================================================
+
+-- Primers library table
+CREATE TABLE IF NOT EXISTS primers (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    sequence TEXT NOT NULL,
+    description TEXT,
+    tm DECIMAL(5,2),                        -- Melting temperature in °C
+    gc_content DECIMAL(5,2),                -- GC content percentage
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    -- Validation constraints
+    CONSTRAINT chk_primer_sequence CHECK (sequence ~ '^[ATGCatgc]+$'),
+    CONSTRAINT chk_primer_length CHECK (length(sequence) BETWEEN 18 AND 30),
+    CONSTRAINT chk_gc_content CHECK (gc_content IS NULL OR (gc_content >= 0 AND gc_content <= 100)),
+    CONSTRAINT chk_tm CHECK (tm IS NULL OR (tm >= 0 AND tm <= 100))
+);
+
+-- Sample-Primer association table (many-to-many)
+CREATE TABLE IF NOT EXISTS sample_primers (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    sample_id TEXT NOT NULL REFERENCES samples(id) ON DELETE CASCADE,
+    primer_id TEXT NOT NULL REFERENCES primers(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    -- Prevent duplicate primer assignments
+    CONSTRAINT unique_sample_primer UNIQUE (sample_id, primer_id)
+);
+
+-- 96-well plate layouts table
+CREATE TABLE IF NOT EXISTS plate_layouts (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    request_id TEXT NOT NULL REFERENCES sequencing_requests(id) ON DELETE CASCADE,
+    plate_name VARCHAR(100) NOT NULL,
+    plate_type VARCHAR(50) NOT NULL DEFAULT '96-well',
+    created_by TEXT NOT NULL REFERENCES users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Well assignments table (tracks which sample goes in which well)
+CREATE TABLE IF NOT EXISTS well_assignments (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    plate_layout_id TEXT NOT NULL REFERENCES plate_layouts(id) ON DELETE CASCADE,
+    sample_id TEXT NOT NULL REFERENCES samples(id) ON DELETE CASCADE,
+    well_position VARCHAR(10) NOT NULL,     -- e.g., "A01", "B02", etc.
+    status well_status NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    -- Validation constraints
+    CONSTRAINT chk_well_position CHECK (well_position ~ '^[A-H](0[1-9]|1[0-2])$'),
+    -- Ensure each well in a plate is unique
+    CONSTRAINT unique_plate_well UNIQUE (plate_layout_id, well_position),
+    -- Ensure each sample only appears once per plate
+    CONSTRAINT unique_plate_sample UNIQUE (plate_layout_id, sample_id)
+);
+
+-- =============================================================================
+-- NGS BARCODE MANAGEMENT TABLES
+-- =============================================================================
+
+-- Barcode kits table (e.g., Illumina TruSeq, Nextera)
+CREATE TABLE IF NOT EXISTS barcode_kits (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    manufacturer VARCHAR(100) NOT NULL,
+    platform VARCHAR(50) NOT NULL,          -- e.g., "Illumina", "MGI"
+    index_type VARCHAR(20) NOT NULL,        -- e.g., "single", "dual"
+    description TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    CONSTRAINT chk_index_type CHECK (index_type IN ('single', 'dual'))
+);
+
+-- Barcode sequences table (individual barcodes within a kit)
+CREATE TABLE IF NOT EXISTS barcode_sequences (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    kit_id TEXT NOT NULL REFERENCES barcode_kits(id) ON DELETE CASCADE,
+    index_name VARCHAR(50) NOT NULL,        -- e.g., "i7_01", "i5_01"
+    sequence TEXT NOT NULL,
+    position INTEGER NOT NULL,              -- Position in the kit (for ordering)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    -- Validation constraints
+    CONSTRAINT chk_barcode_sequence CHECK (sequence ~ '^[ATGCatgc]+$'),
+    CONSTRAINT chk_position CHECK (position > 0),
+    -- Ensure unique index names within a kit
+    CONSTRAINT unique_kit_index UNIQUE (kit_id, index_name),
+    -- Ensure unique positions within a kit
+    CONSTRAINT unique_kit_position UNIQUE (kit_id, position)
+);
+
+-- Barcode assignments table (which barcode is assigned to which sample)
+-- Only technicians can assign barcodes (enforced in application layer)
+CREATE TABLE IF NOT EXISTS barcode_assignments (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    sample_id TEXT NOT NULL REFERENCES samples(id) ON DELETE CASCADE,
+    kit_id TEXT NOT NULL REFERENCES barcode_kits(id) ON DELETE RESTRICT,
+    i7_index_id TEXT REFERENCES barcode_sequences(id) ON DELETE RESTRICT,
+    i5_index_id TEXT REFERENCES barcode_sequences(id) ON DELETE RESTRICT,
+    assigned_by TEXT NOT NULL REFERENCES users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    -- Ensure at least one index is assigned
+    CONSTRAINT chk_at_least_one_index CHECK (i7_index_id IS NOT NULL OR i5_index_id IS NOT NULL),
+    -- One barcode assignment per sample
+    CONSTRAINT unique_sample_barcode UNIQUE (sample_id)
+);
+
+-- =============================================================================
+-- INDEXES FOR SANGER AND BARCODE TABLES
+-- =============================================================================
+
+-- Primers indexes
+CREATE INDEX IF NOT EXISTS idx_primers_name ON primers(name);
+
+-- Sample-Primers indexes
+CREATE INDEX IF NOT EXISTS idx_sample_primers_sample_id ON sample_primers(sample_id);
+CREATE INDEX IF NOT EXISTS idx_sample_primers_primer_id ON sample_primers(primer_id);
+
+-- Plate layouts indexes
+CREATE INDEX IF NOT EXISTS idx_plate_layouts_request_id ON plate_layouts(request_id);
+CREATE INDEX IF NOT EXISTS idx_plate_layouts_created_by ON plate_layouts(created_by);
+
+-- Well assignments indexes
+CREATE INDEX IF NOT EXISTS idx_well_assignments_plate_id ON well_assignments(plate_layout_id);
+CREATE INDEX IF NOT EXISTS idx_well_assignments_sample_id ON well_assignments(sample_id);
+CREATE INDEX IF NOT EXISTS idx_well_assignments_status ON well_assignments(status);
+
+-- Barcode kits indexes
+CREATE INDEX IF NOT EXISTS idx_barcode_kits_platform ON barcode_kits(platform);
+CREATE INDEX IF NOT EXISTS idx_barcode_kits_name ON barcode_kits(name);
+
+-- Barcode sequences indexes
+CREATE INDEX IF NOT EXISTS idx_barcode_sequences_kit_id ON barcode_sequences(kit_id);
+CREATE INDEX IF NOT EXISTS idx_barcode_sequences_kit_position ON barcode_sequences(kit_id, position);
+
+-- Barcode assignments indexes
+CREATE INDEX IF NOT EXISTS idx_barcode_assignments_sample_id ON barcode_assignments(sample_id);
+CREATE INDEX IF NOT EXISTS idx_barcode_assignments_kit_id ON barcode_assignments(kit_id);
+CREATE INDEX IF NOT EXISTS idx_barcode_assignments_assigned_by ON barcode_assignments(assigned_by);
+
+-- =============================================================================
 -- TRIGGERS
 -- =============================================================================
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -154,6 +334,31 @@ CREATE OR REPLACE TRIGGER update_requests_updated_at
 
 CREATE OR REPLACE TRIGGER update_samples_updated_at 
     BEFORE UPDATE ON samples 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE OR REPLACE TRIGGER update_primers_updated_at 
+    BEFORE UPDATE ON primers 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE OR REPLACE TRIGGER update_plate_layouts_updated_at 
+    BEFORE UPDATE ON plate_layouts 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE OR REPLACE TRIGGER update_well_assignments_updated_at 
+    BEFORE UPDATE ON well_assignments 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE OR REPLACE TRIGGER update_barcode_kits_updated_at 
+    BEFORE UPDATE ON barcode_kits 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE OR REPLACE TRIGGER update_barcode_assignments_updated_at 
+    BEFORE UPDATE ON barcode_assignments 
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 

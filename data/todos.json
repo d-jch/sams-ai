@@ -47,6 +47,186 @@
       "title": "实现数据分页和过滤",
       "description": "为申请/样品列表API添加分页参数（page/limit）和过滤参数（status/type/date range）",
       "status": "completed"
+    },
+    {
+      "id": 9,
+      "title": "修复：lib/types.ts 添加 'sanger' 到 SequencingType",
+      "description": "当前 SequencingType 只包含 'WGS' | 'WES' | 'RNA-seq' | 'amplicon' | 'ChIP-seq'，需要添加 'sanger' 类型以支持 Sanger 测序",
+      "status": "completed"
+    },
+    {
+      "id": 10,
+      "title": "修复：lib/types.ts 从 SampleType 移除 'Protein'",
+      "description": "当前 SampleType 包含 'Protein'，但根据业务需求应该移除（只保留 'DNA' | 'RNA' | 'Cell'）",
+      "status": "completed"
+    },
+    {
+      "id": 11,
+      "title": "新增：添加 lib/types.ts 中 Sanger 和 Barcode 相关类型定义",
+      "description": "添加 Primer、PrimerRow、PlateLayout、WellAssignment、BarcodeKit、BarcodeSequence、BarcodeAssignment 等接口类型定义，与数据库表结构对应",
+      "status": "completed"
+    },
+    {
+      "id": 12,
+      "title": "修复：lib/validation.ts 添加引物序列验证",
+      "description": "添加引物验证函数：validatePrimerSequence（检查序列只包含 ATGC）、validatePrimerLength（18-30bp）、validateGCContent（40-60%）、validateTm（55-65°C）",
+      "status": "completed"
+    },
+    {
+      "id": 13,
+      "title": "修复：lib/permissions.ts 添加 canAssignBarcode 权限检查",
+      "description": "添加新的权限检查函数 canAssignBarcode(user: User)，只允许技术员及以上角色分配 Barcode；在样品更新 API 中使用此检查",
+      "status": "completed"
+    },
+    {
+      "id": 14,
+      "title": "优化：lib/permissions.ts 完善状态流转权限控制",
+      "description": "当前 canModifyRequestStatus 只检查是否为 lab_manager/admin，需要根据目标状态细化：pending→approved（lab_manager/admin）、approved→in_progress（technician+）、in_progress→completed（technician+）",
+      "status": "completed"
+    },
+    {
+      "id": 15,
+      "title": "修复：sql/schema.sql 更新 sequencing_type 枚举",
+      "description": "当前数据库 sequencing_type 枚举缺少 'sanger'，需要通过 ALTER TYPE 添加；同时更新 sample_type 枚举移除 'Protein'",
+      "status": "completed"
+    },
+    {
+      "id": 16,
+      "title": "更新数据库迁移脚本",
+      "description": "在 scripts/migrations/ 添加新表创建迁移；更新 sequencing_type 枚举添加 'sanger'；更新 sample_type 枚举移除 'Protein'；添加回滚脚本",
+      "status": "completed"
+    },
+    {
+      "id": 17,
+      "title": "创建 Sanger 测序相关数据表",
+      "description": "在 sql/schema.sql 和 migrations 中添加：primers（引物库表）、sample_primers（样品-引物关联表）、plate_layouts（96孔板布局表）、well_assignments（孔位分配表）；添加必要的索引和约束",
+      "status": "completed"
+    },
+    {
+      "id": 18,
+      "title": "创建 NGS Barcode 相关数据表",
+      "description": "添加：barcode_kits（Barcode试剂盒表）、barcode_sequences（Barcode序列表）、barcode_assignments（Barcode分配表）；实现 Barcode 唯一性约束和汉明距离验证",
+      "status": "completed"
+    },
+    {
+      "id": 19,
+      "title": "实现引物库种子数据",
+      "description": "在 scripts/seed.ts 添加常用引物数据（M13F、M13R、T7、SP6等）；添加示例 Barcode 试剂盒（Illumina TruSeq、Nextera等）",
+      "status": "completed"
+    },
+    {
+      "id": 20,
+      "title": "修复：routes/api/v1/samples 限制 barcode 字段权限",
+      "description": "当前样品 API 允许申请人在创建/更新样品时设置 barcode 字段，但根据流程设计 barcode 应该只能由技术员分配。需要添加权限检查：只有 technician/lab_manager/admin 可以设置 barcode",
+      "status": "completed"
+    },
+    {
+      "id": 21,
+      "title": "新增：routes/api/v1/samples/[id].ts 添加技术员专属操作端点",
+      "description": "添加 PATCH /api/v1/samples/:id/qc 端点（技术员更新质检状态）、PATCH /api/v1/samples/:id/barcode 端点（技术员分配 Barcode）；与普通样品更新端点分离，强化权限控制",
+      "status": "completed"
+    },
+    {
+      "id": 22,
+      "title": "实现引物管理 CRUD API",
+      "description": "在 routes/api/v1/primers/ 实现 GET/POST/PATCH/DELETE 接口；支持引物库浏览、筛选（按基因/用途）、自定义引物创建；添加引物验证（长度18-30bp、GC含量40-60%、Tm 55-65°C）",
+      "status": "completed"
+    },
+    {
+      "id": 23,
+      "title": "实现 96孔板布局管理 API",
+      "description": "在 routes/api/v1/plates/ 实现板图生成、孔位分配、自动分配策略（按行优先、预留空白孔、避免边缘效应）；支持手动调整和导出板图",
+      "status": "completed"
+    },
+    {
+      "id": 24,
+      "title": "实现 Barcode 管理 API（技术员操作）",
+      "description": "在 routes/api/v1/barcodes/ 实现试剂盒管理、Barcode分配（自动/手动）、冲突检测；生成 SampleSheet.csv；支持单样品（无Barcode）和多样品（需Barcode）流程判断；添加技术员角色权限验证",
+      "status": "completed"
+    },
+    {
+      "id": 25,
+      "title": "实现角色分工的工作流程",
+      "description": "明确各角色操作权限：申请人（提交申请、选择引物）→ 管理员（审核申请）→ 技术员（样品登记、质检、Barcode分配、96孔板布局、上机测序）→ 申请人（接收结果）；在状态流转中添加角色检查",
+      "status": "completed"
+    },
+    {
+      "id": 26,
+      "title": "修复：routes/requests/new.tsx 添加 Sanger 测序选项",
+      "description": "当前新建申请页面的测序类型下拉菜单中缺少 Sanger 测序选项，需要添加 <option value='sanger'>Sanger测序</option>",
+      "status": "not-started"
+    },
+    {
+      "id": 26,
+      "title": "申请表单添加Sanger测序选项",
+      "description": "在请求创建表单中添加测序类型选择（Sanger/NGS），并根据选择动态显示相关字段",
+      "status": "completed"
+    },
+    {
+      "id": 27,
+      "title": "Sanger测序申请页面",
+      "description": "创建专门的Sanger测序申请页面，包含样品信息、引物选择等字段",
+      "status": "completed"
+    },
+    {
+      "id": 28,
+      "title": "动态表单字段（根据测序类型）",
+      "description": "根据测序类型（Sanger/NGS）动态显示/隐藏相关表单字段",
+      "status": "completed"
+    },
+    {
+      "id": 29,
+      "title": "96孔板设计器组件",
+      "description": "创建可视化的96孔板布局设计器，支持拖拽分配样品、查看孔位状态",
+      "status": "completed"
+    },
+    {
+      "id": 30,
+      "title": "Barcode分配界面（技术员）",
+      "description": "创建技术员专用的Barcode分配界面，支持查看可用Barcode、分配给样品、冲突检测",
+      "status": "completed"
+    },
+    {
+      "id": 31,
+      "title": "Barcode使用说明文档",
+      "description": "编写Barcode系统使用说明，包括试剂盒选择、索引组合规则、SampleSheet生成等",
+      "status": "completed"
+    },
+    {
+      "id": 30,
+      "title": "创建 Barcode 分配界面（技术员端）",
+      "description": "创建 islands/BarcodeAssigner.tsx 组件；实现试剂盒选择、Barcode自动/手动分配、冲突提示；支持 SampleSheet 预览和下载；仅技术员及以上角色可访问",
+      "status": "not-started"
+    },
+    {
+      "id": 31,
+      "title": "添加 Barcode 验证功能文档（技术员操作指南）",
+      "description": "在技术员操作界面添加 Barcode 验证方法指导（qPCR、Sanger测序、Bioanalyzer、试测序、ddPCR）；创建质控记录表单；提供验证结果记录和审计追踪",
+      "status": "not-started"
+    },
+    {
+      "id": 32,
+      "title": "创建数据交付页面",
+      "description": "创建 routes/results/[id].tsx 结果交付页面；区分 Sanger 交付（.ab1/.seq/.pdf）和 NGS 交付（.fastq.gz/.bam/QC_report.html）；添加文件下载和 MD5 校验",
+      "status": "not-started"
+    },
+    {
+      "id": 33,
+      "title": "实现质量控制报告生成",
+      "description": "为 Sanger 测序生成峰图质控报告（Phred Score Q20/Q30、可读长度）；为 NGS 生成 FastQC/MultiQC 报告；实现 Barcode 不明率统计",
+      "status": "not-started"
+    },
+    {
+      "id": 34,
+      "title": "实现数据拆分(Demultiplexing)工具集成",
+      "description": "添加 SampleSheet 上传接口；集成 bcl2fastq 或提供命令行工具；生成拆分统计报告；检测 Undetermined reads 高比例告警",
+      "status": "not-started"
+    },
+    {
+      "id": 35,
+      "title": "添加 Sanger 和 Barcode 测试用例",
+      "description": "在 tests/ 添加：primer CRUD 测试、plate layout 生成测试、barcode 分配冲突检测测试、SampleSheet 生成测试；覆盖单样品/多样品流程",
+      "status": "not-started"
     }
   ]
 }

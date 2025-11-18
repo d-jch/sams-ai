@@ -88,6 +88,7 @@ export default define.page<typeof handler>(function RequestsPage(props) {
 
   // 类型映射（中文）
   const typeMap: Record<SequencingType, string> = {
+    "sanger": "Sanger测序",
     "WGS": "全基因组测序",
     "WES": "外显子测序",
     "RNA-seq": "RNA测序",
@@ -97,9 +98,7 @@ export default define.page<typeof handler>(function RequestsPage(props) {
 
   // 优先级映射（中文）
   const priorityMap: Record<PriorityLevel, string> = {
-    low: "低",
     normal: "正常",
-    high: "高",
     urgent: "紧急",
   };
 
@@ -114,9 +113,7 @@ export default define.page<typeof handler>(function RequestsPage(props) {
 
   // 优先级对应的 badge 颜色
   const priorityColorMap: Record<PriorityLevel, string> = {
-    low: "badge-neutral",
     normal: "badge-info",
-    high: "badge-warning",
     urgent: "badge-error",
   };
 
@@ -227,6 +224,12 @@ export default define.page<typeof handler>(function RequestsPage(props) {
                   <select name="sequencingType" class="select select-bordered">
                     <option value="">全部</option>
                     <option
+                      value="sanger"
+                      selected={filters.sequencingType === "sanger"}
+                    >
+                      Sanger测序
+                    </option>
+                    <option
                       value="WGS"
                       selected={filters.sequencingType === "WGS"}
                     >
@@ -265,20 +268,11 @@ export default define.page<typeof handler>(function RequestsPage(props) {
                   </label>
                   <select name="priority" class="select select-bordered">
                     <option value="">全部</option>
-                    <option value="low" selected={filters.priority === "low"}>
-                      低
-                    </option>
                     <option
                       value="normal"
                       selected={filters.priority === "normal"}
                     >
                       正常
-                    </option>
-                    <option
-                      value="high"
-                      selected={filters.priority === "high"}
-                    >
-                      高
                     </option>
                     <option
                       value="urgent"
@@ -344,7 +338,9 @@ export default define.page<typeof handler>(function RequestsPage(props) {
                       <th>测序类型</th>
                       <th>优先级</th>
                       <th>状态</th>
-                      <th>创建时间</th>
+                      <th>样品数</th>
+                      {user?.role !== "researcher" && <th>申请人</th>}
+                      <th>申请时间</th>
                       <th>操作</th>
                     </tr>
                   </thead>
@@ -380,9 +376,36 @@ export default define.page<typeof handler>(function RequestsPage(props) {
                           </span>
                         </td>
                         <td>
-                          {new Date(request.createdAt).toLocaleDateString(
-                            "zh-CN",
-                          )}
+                          <span class="font-semibold text-primary">
+                            {request.sampleCount ?? 0}
+                          </span>
+                        </td>
+                        {user?.role !== "researcher" && (
+                          <td>
+                            <span class="text-sm">{request.userName}</span>
+                          </td>
+                        )}
+                        <td>
+                          <span class="text-sm">
+                            {new Date(request.createdAt).toLocaleDateString(
+                              "zh-CN",
+                              {
+                                year: "numeric",
+                                month: "2-digit",
+                                day: "2-digit",
+                              },
+                            )}
+                          </span>
+                          <br />
+                          <span class="text-xs text-gray-500">
+                            {new Date(request.createdAt).toLocaleTimeString(
+                              "zh-CN",
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )}
+                          </span>
                         </td>
                         <td>
                           <a
