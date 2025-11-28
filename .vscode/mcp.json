@@ -1,0 +1,15 @@
+{
+  "servers": {
+    "context7": {
+      "type": "stdio",
+      "command": "deno",
+      "args": [
+        "run",
+        "--allow-net",
+        "--allow-env",
+        "--allow-read",
+        "npm:@upstash/context7-mcp@latest"
+      ]
+    }
+  }
+}
